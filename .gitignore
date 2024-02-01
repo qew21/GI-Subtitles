@@ -1,0 +1,13 @@
+﻿*.user
+*.suo
+*.DotSettings
+*.dll
+bin
+obj
+publish
+packages
+Thumbs.db
+.vs
+installer
+.idea
+
