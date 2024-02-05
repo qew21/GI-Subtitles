@@ -1,4 +1,5 @@
-﻿using PaddleOCRSharp;
+﻿using Emgu.CV.Dnn;
+using PaddleOCRSharp;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -24,6 +25,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using static System.Net.Mime.MediaTypeNames;
 using Path = System.IO.Path;
+using System.Configuration;
+
 
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
 namespace GI_Subtitles
@@ -57,6 +60,8 @@ namespace GI_Subtitles
         [DllImport("User32.dll")]
         private static extern int GetDpiForSystem();
         Dictionary<string, string> BitmapDict = new Dictionary<string, string>();
+        System.Windows.Forms.ContextMenu contextMenu;
+        string currentLanguage = ConfigurationManager.AppSettings["Language"];
 
 
         public MainWindow()
@@ -65,24 +70,40 @@ namespace GI_Subtitles
             
             InitializeNotifyIcon();
             LoadEngine();
-            contentDict = VoiceContentHelper.CreateVoiceContentDictionary("CHS.json", "EN.json");
-            
-            OCRTimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
-            OCRTimer.Tick += GetOCR;    //委托，要执行的方法
-            OCRTimer.Start();
+            string testFile = "testOCR.png";
+            if (File.Exists(testFile))
+            {
+                OCRResult ocrResult = engine.DetectText(testFile);
+                ocrText = ocrResult.Text;
+                Console.WriteLine( ocrText );
+            }
+            else
+            {
+                
+                if (currentLanguage == "英文->中文")
+                {
+                    contentDict = VoiceContentHelper.CreateVoiceContentDictionary("EN.json", "CHS.json");
+                } 
+                else
+                {
+                    contentDict = VoiceContentHelper.CreateVoiceContentDictionary("CHS.json", "EN.json");
+                }
 
-            UITimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
-            UITimer.Tick += UpdateText;    //委托，要执行的方法
-            UITimer.Start();
+                OCRTimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
+                OCRTimer.Tick += GetOCR;    //委托，要执行的方法
+                OCRTimer.Start();
 
-            SetWindowPos(new WindowInteropHelper(this).Handle, -1, 0, 0, 0, 0, 1 | 2 | 0x0010);
-            Scale = GetDpiForSystem() / 96f;
-            System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
-            this.Width = workingArea.Width;
-            this.Top = workingArea.Bottom / Scale - this.Height;
-            this.Left = workingArea.Left / Scale;
+                UITimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
+                UITimer.Tick += UpdateText;    //委托，要执行的方法
+                UITimer.Start();
 
-
+                SetWindowPos(new WindowInteropHelper(this).Handle, -1, 0, 0, 0, 0, 1 | 2 | 0x0010);
+                Scale = GetDpiForSystem() / 96f;
+                System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
+                this.Width = workingArea.Width;
+                this.Top = workingArea.Bottom / Scale - this.Height;
+                this.Left = workingArea.Left / Scale;
+            }
         }
 
         public void GetOCR(object sender, EventArgs e)
@@ -93,8 +114,8 @@ namespace GI_Subtitles
                 try
                 {
                     System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
-                    Bitmap target = CaptureRegion(Convert.ToInt16(workingArea.Left), Convert.ToInt16(workingArea.Bottom - 150 * Scale), Convert.ToInt16(workingArea.Width), Convert.ToInt16(50 * Scale));
-
+                    Bitmap target = CaptureRegion(Convert.ToInt16(workingArea.Left), Convert.ToInt16(workingArea.Bottom - 150 * Scale), Convert.ToInt16(workingArea.Width), Convert.ToInt16(65 * Scale));
+                    target = ImageProcessor.EnhanceTextInImage(target);
                     string bitStr = Bitmap2String(target);
                     if (BitmapDict.ContainsKey(bitStr))
                     {
@@ -104,6 +125,7 @@ namespace GI_Subtitles
                     {
                         OCRResult ocrResult = engine.DetectText(target);
                         ocrText = ocrResult.Text;
+                        
                         var maxY = 0;
                         foreach (var i in ocrResult.TextBlocks)
                         {
@@ -163,19 +185,7 @@ namespace GI_Subtitles
                     if (res != lastRes)
                     {
                         lastRes = res;
-                        Action updateAction = new Action(() =>
-                        {
-                            SubtitleText.Text = res;
-                        });
-
-                        if (SubtitleText.CheckAccess())
-                        {
-                            updateAction();
-                        }
-                        else
-                        {
-                            SubtitleText.Dispatcher.Invoke(updateAction);
-                        }
+                        SubtitleText.Text = res;
                     }
                 }
                 catch (Exception ex)
@@ -213,17 +223,52 @@ namespace GI_Subtitles
 
         private void InitializeNotifyIcon()
         {
-            System.Windows.Forms.ContextMenu _contextMenu = new System.Windows.Forms.ContextMenu();
+            contextMenu = new System.Windows.Forms.ContextMenu();
+            
             System.Windows.Forms.MenuItem _MenuItem1 = new System.Windows.Forms.MenuItem("退出程序", ExitMenuItem_Click);
-            _contextMenu.MenuItems.Add(_MenuItem1);
+            contextMenu.MenuItems.Add(_MenuItem1);
+            System.Windows.Forms.MenuItem chineseMenuItem = new System.Windows.Forms.MenuItem("中文->英文", OnLanguageChanged);
+            System.Windows.Forms.MenuItem englishMenuItem = new System.Windows.Forms.MenuItem("英文->中文", OnLanguageChanged);
+            contextMenu.MenuItems.Add(chineseMenuItem);
+            contextMenu.MenuItems.Add(englishMenuItem);
+
+            // 设置默认选中的菜单项
+            switch (currentLanguage)
+            {
+                case "中文->英文":
+                    chineseMenuItem.Checked = true;
+                    break;
+                case "英文->中文":
+                    englishMenuItem.Checked = true;
+                    break;
+            }
             Uri iconUri = new Uri("pack://application:,,,/Resources/mask.ico");
             Stream iconStream = System.Windows.Application.GetResourceStream(iconUri).Stream;
             notifyIcon = new NotifyIcon
             {
                 Icon = new Icon(iconStream),
                 Visible = true,
-                ContextMenu = _contextMenu
+                ContextMenu = contextMenu
             };
+        }
+
+        // 语言选择事件处理
+        void OnLanguageChanged(object sender, EventArgs e)
+        {
+            
+            System.Windows.Forms.MenuItem clickedItem = (System.Windows.Forms.MenuItem)sender;
+            string selectedLanguage = clickedItem.Text;
+            // 更新菜单项选中状态
+            foreach (System.Windows.Forms.MenuItem item in contextMenu.MenuItems)
+            {
+                item.Checked = (item == clickedItem);
+            }
+            
+            // 写入配置文件
+            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            config.AppSettings.Settings["Language"].Value = selectedLanguage;
+            config.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -262,9 +307,15 @@ namespace GI_Subtitles
             oCRParameter.cpu_math_library_num_threads = 10;//预测并发线程数
             oCRParameter.enable_mkldnn = true;//web部署该值建议设置为0,否则出错，内存如果使用很大，建议该值也设置为0.
             oCRParameter.cls = false; //是否执行文字方向分类；默认false
-            oCRParameter.det = true;//是否开启方向检测，用于检测识别180旋转
+            oCRParameter.det = false;//是否开启方向检测，用于检测识别180旋转
             oCRParameter.use_angle_cls = false;//是否开启方向检测，用于检测识别180旋转
             oCRParameter.det_db_score_mode = true;//是否使用多段线，即文字区域是用多段线还是用矩形，
+            if (currentLanguage == "英文->中文")
+            {
+                oCRParameter.max_side_len = 1560;
+            }
+            oCRParameter.cls = true;
+            oCRParameter.det = true;
 
             //初始化OCR引擎
             engine = new PaddleOCREngine(config, oCRParameter);

@@ -43,10 +43,20 @@ public static class VoiceContentHelper
     {
         string closestKey = null;
         int closestDistance = int.MaxValue;
+        int length = input.Length;
 
         foreach (var key in voiceContentDict.Keys)
         {
-            int distance = CalculateLevenshteinDistance(input, key);
+            if (key.StartsWith(input))
+            {
+                return voiceContentDict[key];
+            }
+            string temp = key;
+            if (temp.Length > length)
+            {
+                temp = temp.Substring(0, length);
+            }
+            int distance = CalculateLevenshteinDistance(input, temp);
             if (distance < closestDistance)
             {
                 closestDistance = distance;
