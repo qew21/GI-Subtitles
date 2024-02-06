@@ -62,6 +62,7 @@ namespace GI_Subtitles
         Dictionary<string, string> BitmapDict = new Dictionary<string, string>();
         System.Windows.Forms.ContextMenu contextMenu;
         string currentLanguage = ConfigurationManager.AppSettings["Language"];
+        string userName = "Traveler";
 
 
         public MainWindow()
@@ -83,6 +84,7 @@ namespace GI_Subtitles
                 if (currentLanguage == "英文->中文")
                 {
                     contentDict = VoiceContentHelper.CreateVoiceContentDictionary("EN.json", "CHS.json");
+                    userName = "旅行者";
                 } 
                 else
                 {
@@ -175,6 +177,7 @@ namespace GI_Subtitles
                         {
                             res = VoiceContentHelper.FindClosestMatch(ocrText, contentDict);
                             Logger.Log.Debug($"Convert ocrResult: {res}");
+                            res = res.Replace("{NICKNAME}", userName);
                             resDict[ocrText] = res;
                             if (BitmapDict.Count > 10)
                             {
@@ -224,13 +227,12 @@ namespace GI_Subtitles
         private void InitializeNotifyIcon()
         {
             contextMenu = new System.Windows.Forms.ContextMenu();
-            
             System.Windows.Forms.MenuItem _MenuItem1 = new System.Windows.Forms.MenuItem("退出程序", ExitMenuItem_Click);
-            contextMenu.MenuItems.Add(_MenuItem1);
             System.Windows.Forms.MenuItem chineseMenuItem = new System.Windows.Forms.MenuItem("中文->英文", OnLanguageChanged);
             System.Windows.Forms.MenuItem englishMenuItem = new System.Windows.Forms.MenuItem("英文->中文", OnLanguageChanged);
             contextMenu.MenuItems.Add(chineseMenuItem);
             contextMenu.MenuItems.Add(englishMenuItem);
+            contextMenu.MenuItems.Add(_MenuItem1);
 
             // 设置默认选中的菜单项
             switch (currentLanguage)
@@ -269,6 +271,9 @@ namespace GI_Subtitles
             config.AppSettings.Settings["Language"].Value = selectedLanguage;
             config.Save(ConfigurationSaveMode.Modified);
             ConfigurationManager.RefreshSection("appSettings");
+
+            System.Windows.Forms.Application.Restart();
+            System.Windows.Application.Current.Shutdown();
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
