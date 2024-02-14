@@ -52,7 +52,10 @@ public static class VoiceContentHelper
                 return voiceContentDict[key];
             }
             string temp = key;
-            if (temp.Length > length)
+            if (length <= 5 && temp.Length >= length * 3) {
+                continue;
+            }
+            if (length > 5 && temp.Length > length)
             {
                 temp = temp.Substring(0, length);
             }
@@ -63,12 +66,12 @@ public static class VoiceContentHelper
                 closestKey = key;
             }
         }
-        if (closestDistance < 50)
+        if (closestDistance < length / 2)
         {
             return voiceContentDict[closestKey];
         } else
         {
-            return null;
+            return "";
         }
         
     }

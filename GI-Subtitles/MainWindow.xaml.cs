@@ -80,15 +80,22 @@ namespace GI_Subtitles
             }
             else
             {
-                
-                if (currentLanguage == "英文->中文")
+                Dictionary<string, string> languageDict = new Dictionary<string, string>();
+                languageDict["英文"] = "EN.json";
+                languageDict["中文"] = "CHS.json";
+                languageDict["日文"] = "JP.json";
+                string[] tags = currentLanguage.Split('-');
+                if (tags.Length == 2)
                 {
-                    contentDict = VoiceContentHelper.CreateVoiceContentDictionary("EN.json", "CHS.json");
-                    userName = "旅行者";
-                } 
-                else
-                {
-                    contentDict = VoiceContentHelper.CreateVoiceContentDictionary("CHS.json", "EN.json");
+                    if (!languageDict.ContainsKey(tags[1]))
+                    {
+                        tags[1] = "中文";
+                    }
+                    if (tags[1] == "中文")
+                    {
+                        userName = "旅行者";
+                    }
+                    contentDict = VoiceContentHelper.CreateVoiceContentDictionary(languageDict[tags[0]], languageDict[tags[1]]);
                 }
 
                 OCRTimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
@@ -127,7 +134,6 @@ namespace GI_Subtitles
                     {
                         OCRResult ocrResult = engine.DetectText(target);
                         ocrText = ocrResult.Text;
-                        
                         var maxY = 0;
                         foreach (var i in ocrResult.TextBlocks)
                         {
@@ -167,7 +173,7 @@ namespace GI_Subtitles
                 try
                 {
                     string res = "";
-                    if (!string.IsNullOrEmpty(ocrText))
+                    if (ocrText.Length > 1)
                     {
                         if (resDict.ContainsKey(ocrText))
                         {
@@ -228,20 +234,25 @@ namespace GI_Subtitles
         {
             contextMenu = new System.Windows.Forms.ContextMenu();
             System.Windows.Forms.MenuItem _MenuItem1 = new System.Windows.Forms.MenuItem("退出程序", ExitMenuItem_Click);
-            System.Windows.Forms.MenuItem chineseMenuItem = new System.Windows.Forms.MenuItem("中文->英文", OnLanguageChanged);
-            System.Windows.Forms.MenuItem englishMenuItem = new System.Windows.Forms.MenuItem("英文->中文", OnLanguageChanged);
+            System.Windows.Forms.MenuItem chineseMenuItem = new System.Windows.Forms.MenuItem("中文-英文", OnLanguageChanged);
+            System.Windows.Forms.MenuItem englishMenuItem = new System.Windows.Forms.MenuItem("英文-中文", OnLanguageChanged);
+            System.Windows.Forms.MenuItem japanMenuItem = new System.Windows.Forms.MenuItem("日文-中文", OnLanguageChanged);
             contextMenu.MenuItems.Add(chineseMenuItem);
             contextMenu.MenuItems.Add(englishMenuItem);
+            contextMenu.MenuItems.Add(japanMenuItem);
             contextMenu.MenuItems.Add(_MenuItem1);
 
             // 设置默认选中的菜单项
             switch (currentLanguage)
             {
-                case "中文->英文":
+                case "中文-英文":
                     chineseMenuItem.Checked = true;
                     break;
-                case "英文->中文":
+                case "英文-中文":
                     englishMenuItem.Checked = true;
+                    break;
+                case "日文-中文":
+                    japanMenuItem.Checked = true;
                     break;
             }
             Uri iconUri = new Uri("pack://application:,,,/Resources/mask.ico");
@@ -315,12 +326,21 @@ namespace GI_Subtitles
             oCRParameter.det = false;//是否开启方向检测，用于检测识别180旋转
             oCRParameter.use_angle_cls = false;//是否开启方向检测，用于检测识别180旋转
             oCRParameter.det_db_score_mode = true;//是否使用多段线，即文字区域是用多段线还是用矩形，
-            if (currentLanguage == "英文->中文")
-            {
-                oCRParameter.max_side_len = 1560;
-            }
+            oCRParameter.max_side_len = 1560;
             oCRParameter.cls = true;
             oCRParameter.det = true;
+
+            if (currentLanguage == "日文-中文") {
+                config = new OCRModelConfig();
+                string root = System.IO.Path.GetDirectoryName(typeof(OCRModelConfig).Assembly.Location);
+                string modelPathroot = root + @"\inference";
+                config.det_infer = modelPathroot + @"\ch_PP-OCRv3_det_infer";
+                config.cls_infer = modelPathroot + @"\ch_ppocr_mobile_v2.0_cls_infer";
+                config.rec_infer = modelPathroot + @"\japan_PP-OCRv3_rec_infer";
+                config.keys = modelPathroot + @"\japan_dict.txt";
+                oCRParameter.max_side_len = 1560;
+            }
+            
 
             //初始化OCR引擎
             engine = new PaddleOCREngine(config, oCRParameter);

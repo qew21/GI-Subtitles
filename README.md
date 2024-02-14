@@ -1,6 +1,6 @@
 # 原神双语字幕插件
 
-基于[PaddleOCRSharp](https://github.com/raoyutian/PaddleOCRSharp)文本识别和[Genshin_Datasets](https://github.com/AI-Hobbyist/Genshin_Datasets)原神多语言文本json内容。
+基于[PaddleOCRSharp](https://github.com/raoyutian/PaddleOCRSharp)文本识别和[Genshin_Datasets](https://github.com/AI-Hobbyist/Genshin_Voice_Sorting_Scripts/tree/main/AI%20Hobbyist%20Version/Indexs)原神多语言文本json内容。
 
 ## 介绍
 
@@ -22,6 +22,10 @@
 https://www.bilibili.com/video/BV1sH4y1e7Qg
 
 ## 更新
+
+**1.0.3**  
+1. 支持日中字幕
+2. 降低短文本匹配错误率
 
 **1.0.2**  
 1. 切换语言后重启程序
