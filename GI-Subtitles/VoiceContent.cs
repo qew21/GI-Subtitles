@@ -17,22 +17,16 @@ public static class VoiceContentHelper
 {
     public static Dictionary<string, string> CreateVoiceContentDictionary(string chsFilePath, string enFilePath)
     {
-        var chsData = JsonConvert.DeserializeObject<Dictionary<string, VoiceContentData>>(File.ReadAllText(chsFilePath));
-        var enData = JsonConvert.DeserializeObject<Dictionary<string, VoiceContentData>>(File.ReadAllText(enFilePath));
-
-        var enDataByFileName = new Dictionary<string, string>();
-        foreach (var enItem in enData)
-        {
-            enDataByFileName[enItem.Value.SourceFileName] = enItem.Value.VoiceContent;
-        }
+        var chsData = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(chsFilePath));
+        var enData = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(enFilePath));
 
         var voiceContentDict = new Dictionary<string, string>();
 
         foreach (var chsItem in chsData)
         {
-            if (enDataByFileName.TryGetValue(chsItem.Value.SourceFileName, out var enVoiceContent))
+            if (enData.TryGetValue(chsItem.Key, out var enVoiceContent))
             {
-                voiceContentDict[chsItem.Value.VoiceContent] = enVoiceContent;
+                voiceContentDict[chsItem.Value] = enVoiceContent;
             }
         }
 

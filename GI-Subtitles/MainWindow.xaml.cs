@@ -81,9 +81,9 @@ namespace GI_Subtitles
             else
             {
                 Dictionary<string, string> languageDict = new Dictionary<string, string>();
-                languageDict["英文"] = "EN.json";
-                languageDict["中文"] = "CHS.json";
-                languageDict["日文"] = "JP.json";
+                languageDict["英文"] = "TextMapEN.json";
+                languageDict["中文"] = "TextMapCHS.json";
+                languageDict["日文"] = "TextMapJP.json";
                 string[] tags = currentLanguage.Split('-');
                 if (tags.Length == 2)
                 {
@@ -134,6 +134,12 @@ namespace GI_Subtitles
                     {
                         OCRResult ocrResult = engine.DetectText(target);
                         ocrText = ocrResult.Text;
+                        if (false)
+                        {
+                            Logger.Log.Debug(DateTime.Now.ToString("yyyy-MM-dd_HH_mm_ss_ffffff") + ".png");
+                            target.Save(DateTime.Now.ToString("yyyy-MM-dd_HH_mm_ss_ffffff") + ".png");
+                            Logger.Log.Debug(ocrText);
+                        }
                         var maxY = 0;
                         foreach (var i in ocrResult.TextBlocks)
                         {
