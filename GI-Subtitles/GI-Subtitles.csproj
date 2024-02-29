@@ -75,6 +75,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="ImageProcessor.cs" />
+    <Compile Include="INotifyIcon.cs" />
     <Compile Include="ScreenInfo.cs" />
     <Compile Include="VoiceContent.cs" />
     <Page Include="MainWindow.xaml">

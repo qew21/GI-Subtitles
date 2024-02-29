@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using GI_Subtitles;
 using Newtonsoft.Json;
 
@@ -38,7 +39,8 @@ public static class VoiceContentHelper
         string closestKey = null;
         int closestDistance = int.MaxValue;
         int length = input.Length;
-
+        string pattern1 = @"\{.*?\}";
+        string pattern2 = @"</?unbreak>";
         foreach (var key in voiceContentDict.Keys)
         {
             if (key.StartsWith(input))
@@ -49,10 +51,13 @@ public static class VoiceContentHelper
             if (length <= 5 && temp.Length >= length * 3) {
                 continue;
             }
+            temp = Regex.Replace(temp, pattern1, "");
+            temp = Regex.Replace(temp, pattern2, "");
             if (length > 5 && temp.Length > length)
             {
                 temp = temp.Substring(0, length);
             }
+            
             int distance = CalculateLevenshteinDistance(input, temp);
             if (distance < closestDistance)
             {
@@ -60,9 +65,13 @@ public static class VoiceContentHelper
                 closestKey = key;
             }
         }
-        if (closestDistance < length / 2)
+        //Console.WriteLine($"closestKey {closestKey} length {length} closestDistance {closestDistance}");
+        if (closestDistance < length / 1.5)
         {
-            return voiceContentDict[closestKey];
+            string  res = voiceContentDict[closestKey];
+            res = Regex.Replace(res, pattern1, "");
+            res = Regex.Replace(res, pattern2, "");
+            return res;
         } else
         {
             return "";

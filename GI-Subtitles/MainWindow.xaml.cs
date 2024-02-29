@@ -49,7 +49,6 @@ namespace GI_Subtitles
         double Scale;
         private NotifyIcon notifyIcon;
         string lastRes = null;
-        Dictionary<string, string> contentDict = new Dictionary<string, string>();
         Dictionary<string, string> resDict = new Dictionary<string, string>();
         public System.Windows.Threading.DispatcherTimer OCRTimer = new System.Windows.Threading.DispatcherTimer();
         public System.Windows.Threading.DispatcherTimer UITimer = new System.Windows.Threading.DispatcherTimer();
@@ -60,16 +59,17 @@ namespace GI_Subtitles
         [DllImport("User32.dll")]
         private static extern int GetDpiForSystem();
         Dictionary<string, string> BitmapDict = new Dictionary<string, string>();
-        System.Windows.Forms.ContextMenu contextMenu;
-        string currentLanguage = ConfigurationManager.AppSettings["Language"];
+        string InputLanguage = ConfigurationManager.AppSettings["Input"];
+        string OutputLanguage = ConfigurationManager.AppSettings["Output"];
         string userName = "Traveler";
+        INotifyIcon notify;
 
 
         public MainWindow()
         {
             InitializeComponent();
-            
-            InitializeNotifyIcon();
+            notify = new INotifyIcon();
+            notifyIcon = notify.InitializeNotifyIcon();
             LoadEngine();
             string testFile = "testOCR.png";
             if (File.Exists(testFile))
@@ -80,23 +80,11 @@ namespace GI_Subtitles
             }
             else
             {
-                Dictionary<string, string> languageDict = new Dictionary<string, string>();
-                languageDict["英文"] = "TextMapEN.json";
-                languageDict["中文"] = "TextMapCHS.json";
-                languageDict["日文"] = "TextMapJP.json";
-                string[] tags = currentLanguage.Split('-');
-                if (tags.Length == 2)
+                if (OutputLanguage == "CHS")
                 {
-                    if (!languageDict.ContainsKey(tags[1]))
-                    {
-                        tags[1] = "中文";
-                    }
-                    if (tags[1] == "中文")
-                    {
-                        userName = "旅行者";
-                    }
-                    contentDict = VoiceContentHelper.CreateVoiceContentDictionary(languageDict[tags[0]], languageDict[tags[1]]);
+                    userName = "旅行者";
                 }
+                
 
                 OCRTimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
                 OCRTimer.Tick += GetOCR;    //委托，要执行的方法
@@ -123,7 +111,15 @@ namespace GI_Subtitles
                 try
                 {
                     System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
-                    Bitmap target = CaptureRegion(Convert.ToInt16(workingArea.Left), Convert.ToInt16(workingArea.Bottom - 150 * Scale), Convert.ToInt16(workingArea.Width), Convert.ToInt16(65 * Scale));
+                    Bitmap target;
+                    if (ConfigurationManager.AppSettings["Game"] == "Genshin")
+                    {
+                        target = CaptureRegion(Convert.ToInt16(workingArea.Left), Convert.ToInt16(workingArea.Bottom - 150 * Scale), Convert.ToInt16(workingArea.Width), Convert.ToInt16(65 * Scale));
+                    } else
+                    {
+                        target = CaptureRegion(Convert.ToInt16(workingArea.Left), Convert.ToInt16(workingArea.Bottom - 190 * Scale), Convert.ToInt16(workingArea.Width), Convert.ToInt16(105 * Scale));
+                    }
+                    
                     target = ImageProcessor.EnhanceTextInImage(target);
                     string bitStr = Bitmap2String(target);
                     if (BitmapDict.ContainsKey(bitStr))
@@ -187,7 +183,7 @@ namespace GI_Subtitles
                         }
                         else
                         {
-                            res = VoiceContentHelper.FindClosestMatch(ocrText, contentDict);
+                            res = VoiceContentHelper.FindClosestMatch(ocrText, notify.contentDict);
                             Logger.Log.Debug($"Convert ocrResult: {res}");
                             res = res.Replace("{NICKNAME}", userName);
                             resDict[ocrText] = res;
@@ -201,6 +197,7 @@ namespace GI_Subtitles
                     {
                         lastRes = res;
                         SubtitleText.Text = res;
+                        SubtitleText.FontSize = Convert.ToInt16(ConfigurationManager.AppSettings["Size"]);
                     }
                 }
                 catch (Exception ex)
@@ -236,74 +233,12 @@ namespace GI_Subtitles
         }
 
 
-        private void InitializeNotifyIcon()
-        {
-            contextMenu = new System.Windows.Forms.ContextMenu();
-            System.Windows.Forms.MenuItem _MenuItem1 = new System.Windows.Forms.MenuItem("退出程序", ExitMenuItem_Click);
-            System.Windows.Forms.MenuItem chineseMenuItem = new System.Windows.Forms.MenuItem("中文-英文", OnLanguageChanged);
-            System.Windows.Forms.MenuItem englishMenuItem = new System.Windows.Forms.MenuItem("英文-中文", OnLanguageChanged);
-            System.Windows.Forms.MenuItem japanMenuItem = new System.Windows.Forms.MenuItem("日文-中文", OnLanguageChanged);
-            contextMenu.MenuItems.Add(chineseMenuItem);
-            contextMenu.MenuItems.Add(englishMenuItem);
-            contextMenu.MenuItems.Add(japanMenuItem);
-            contextMenu.MenuItems.Add(_MenuItem1);
-
-            // 设置默认选中的菜单项
-            switch (currentLanguage)
-            {
-                case "中文-英文":
-                    chineseMenuItem.Checked = true;
-                    break;
-                case "英文-中文":
-                    englishMenuItem.Checked = true;
-                    break;
-                case "日文-中文":
-                    japanMenuItem.Checked = true;
-                    break;
-            }
-            Uri iconUri = new Uri("pack://application:,,,/Resources/mask.ico");
-            Stream iconStream = System.Windows.Application.GetResourceStream(iconUri).Stream;
-            notifyIcon = new NotifyIcon
-            {
-                Icon = new Icon(iconStream),
-                Visible = true,
-                ContextMenu = contextMenu
-            };
-        }
-
-        // 语言选择事件处理
-        void OnLanguageChanged(object sender, EventArgs e)
-        {
-            
-            System.Windows.Forms.MenuItem clickedItem = (System.Windows.Forms.MenuItem)sender;
-            string selectedLanguage = clickedItem.Text;
-            // 更新菜单项选中状态
-            foreach (System.Windows.Forms.MenuItem item in contextMenu.MenuItems)
-            {
-                item.Checked = (item == clickedItem);
-            }
-            
-            // 写入配置文件
-            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            config.AppSettings.Settings["Language"].Value = selectedLanguage;
-            config.Save(ConfigurationSaveMode.Modified);
-            ConfigurationManager.RefreshSection("appSettings");
-
-            System.Windows.Forms.Application.Restart();
-            System.Windows.Application.Current.Shutdown();
-        }
-
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             notifyIcon.Dispose();
             notifyIcon = null;
         }
 
-
-        private void ExitMenuItem_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -336,7 +271,7 @@ namespace GI_Subtitles
             oCRParameter.cls = true;
             oCRParameter.det = true;
 
-            if (currentLanguage == "日文-中文") {
+            if (InputLanguage == "JP") {
                 config = new OCRModelConfig();
                 string root = System.IO.Path.GetDirectoryName(typeof(OCRModelConfig).Assembly.Location);
                 string modelPathroot = root + @"\inference";
