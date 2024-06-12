@@ -42,11 +42,10 @@ namespace GI_Subtitles
     /// </summary>
     public partial class MainWindow : Window
     {
-        private static int OCR_TIMER = 0;  
+        private static int OCR_TIMER = 0;
         private static int UI_TIMER = 0;
         private PaddleOCREngine engine;
         string ocrText = null;
-        double Scale;
         private NotifyIcon notifyIcon;
         string lastRes = null;
         Dictionary<string, string> resDict = new Dictionary<string, string>();
@@ -58,6 +57,7 @@ namespace GI_Subtitles
         public static extern int SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int x, int y, int Width, int Height, int flags);
         [DllImport("User32.dll")]
         private static extern int GetDpiForSystem();
+        private double Scale = GetDpiForSystem() / 96f;
         Dictionary<string, string> BitmapDict = new Dictionary<string, string>();
         string InputLanguage = ConfigurationManager.AppSettings["Input"];
         string OutputLanguage = ConfigurationManager.AppSettings["Output"];
@@ -69,14 +69,14 @@ namespace GI_Subtitles
         {
             InitializeComponent();
             notify = new INotifyIcon();
-            notifyIcon = notify.InitializeNotifyIcon();
+            notifyIcon = notify.InitializeNotifyIcon(Scale);
             LoadEngine();
             string testFile = "testOCR.png";
             if (File.Exists(testFile))
             {
                 OCRResult ocrResult = engine.DetectText(testFile);
                 ocrText = ocrResult.Text;
-                Console.WriteLine( ocrText );
+                Console.WriteLine(ocrText);
             }
             else
             {
@@ -84,7 +84,7 @@ namespace GI_Subtitles
                 {
                     userName = "旅行者";
                 }
-                
+
 
                 OCRTimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
                 OCRTimer.Tick += GetOCR;    //委托，要执行的方法
@@ -95,7 +95,6 @@ namespace GI_Subtitles
                 UITimer.Start();
 
                 SetWindowPos(new WindowInteropHelper(this).Handle, -1, 0, 0, 0, 0, 1 | 2 | 0x0010);
-                Scale = GetDpiForSystem() / 96f;
                 System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
                 this.Width = workingArea.Width;
                 this.Top = workingArea.Bottom / Scale - this.Height;
@@ -112,23 +111,21 @@ namespace GI_Subtitles
                 {
                     System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
                     Bitmap target;
-                    if (ConfigurationManager.AppSettings["Game"] == "Genshin")
+                    if (notify.Region[1] == "0")
                     {
-                        target = CaptureRegion(Convert.ToInt16(workingArea.Left), Convert.ToInt16(workingArea.Bottom - 150 * Scale), Convert.ToInt16(workingArea.Width), Convert.ToInt16(65 * Scale));
-                    } else
-                    {
-                        target = CaptureRegion(Convert.ToInt16(workingArea.Left), Convert.ToInt16(workingArea.Bottom - 190 * Scale), Convert.ToInt16(workingArea.Width), Convert.ToInt16(105 * Scale));
+                        System.Windows.Forms.MessageBox.Show("请先选择区域");
+                        notify.ChooseRegion();
                     }
-                    
-                    target = ImageProcessor.EnhanceTextInImage(target);
-                    string bitStr = Bitmap2String(target);
+                    target = CaptureRegion(Convert.ToInt16(notify.Region[0]), Convert.ToInt16(notify.Region[1]), Convert.ToInt16(notify.Region[2]), Convert.ToInt16(notify.Region[3]));
+                    var enhanced = ImageProcessor.EnhanceTextInImage(target);
+                    string bitStr = Bitmap2String(enhanced);
                     if (BitmapDict.ContainsKey(bitStr))
                     {
                         ocrText = BitmapDict[bitStr];
                     }
                     else
                     {
-                        OCRResult ocrResult = engine.DetectText(target);
+                        OCRResult ocrResult = engine.DetectText(enhanced);
                         ocrText = ocrResult.Text;
                         if (false)
                         {
@@ -158,6 +155,7 @@ namespace GI_Subtitles
                         }
                     }
                     Logger.Log.Debug($"OCR Content: {ocrText}");
+
                 }
                 catch (Exception ex)
                 {
@@ -271,7 +269,8 @@ namespace GI_Subtitles
             oCRParameter.cls = true;
             oCRParameter.det = true;
 
-            if (InputLanguage == "JP") {
+            if (InputLanguage == "JP")
+            {
                 config = new OCRModelConfig();
                 string root = System.IO.Path.GetDirectoryName(typeof(OCRModelConfig).Assembly.Location);
                 string modelPathroot = root + @"\inference";
@@ -281,7 +280,7 @@ namespace GI_Subtitles
                 config.keys = modelPathroot + @"\japan_dict.txt";
                 oCRParameter.max_side_len = 1560;
             }
-            
+
 
             //初始化OCR引擎
             engine = new PaddleOCREngine(config, oCRParameter);

@@ -1,15 +1,19 @@
-﻿using System;
+﻿using Screenshot;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Controls;
 using System.Windows.Forms;
+using ZedGraph;
 
 namespace GI_Subtitles
 {
+
     internal class INotifyIcon
     {
         System.Windows.Forms.ContextMenuStrip contextMenuStrip;
@@ -21,11 +25,14 @@ namespace GI_Subtitles
         string InputLanguage = ConfigurationManager.AppSettings["Input"];
         string OutputLanguage = ConfigurationManager.AppSettings["Output"];
         string Size = ConfigurationManager.AppSettings["Size"];
+        public string[] Region = ConfigurationManager.AppSettings["Region"].Split(',');
         public Dictionary<string, string> contentDict = new Dictionary<string, string>();
+        double Scale = 1;
 
 
-        public NotifyIcon InitializeNotifyIcon()
+        public NotifyIcon InitializeNotifyIcon(double scale)
         {
+            Scale = scale;
             NotifyIcon notifyIcon;
             contextMenuStrip = new ContextMenuStrip();
 
@@ -62,13 +69,16 @@ namespace GI_Subtitles
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("20"));
 
 
+            ToolStripMenuItem screenItem = new ToolStripMenuItem("选择区域");
             ToolStripMenuItem exitItem = new ToolStripMenuItem("退出程序");
-            exitItem.Click += (sender, e) => { System.Windows.Application.Current.Shutdown(); }; 
+            screenItem.Click += (sender, e) => { ChooseRegion(); };
+            exitItem.Click += (sender, e) => { System.Windows.Application.Current.Shutdown(); };
             contextMenuStrip.Items.Add(gameSelector);
             contextMenuStrip.Items.Add(inputSelector);
             contextMenuStrip.Items.Add(outputSelector);
             contextMenuStrip.Items.Add(fontSizeSelector);
             contextMenuStrip.Items.Add(new ToolStripSeparator());
+            contextMenuStrip.Items.Add(screenItem);
             contextMenuStrip.Items.Add(exitItem);
 
 
@@ -92,14 +102,32 @@ namespace GI_Subtitles
             return notifyIcon;
         }
 
+        public void ChooseRegion()
+        {
+            try
+            {
+                var rect = Screenshot.Screenshot.GetRegion(Scale);
+                Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                config.AppSettings.Settings["Region"].Value = $"{Convert.ToInt16(rect.TopLeft.X * Scale)},{Convert.ToInt16(rect.TopLeft.Y * Scale)},{Convert.ToInt16(rect.Width * Scale)},{Convert.ToInt16(rect.Height * Scale)}";
+                Console.WriteLine(config.AppSettings.Settings["Region"].Value);
+                Region = config.AppSettings.Settings["Region"].Value.Split(',');
+                config.Save(ConfigurationSaveMode.Modified);
+                ConfigurationManager.RefreshSection("appSettings");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
         private ToolStripMenuItem CreateGameItem(string code, string displayName)
         {
             ToolStripMenuItem item = new ToolStripMenuItem(displayName);
-            item.Tag = code; 
-            item.CheckOnClick = true; 
+            item.Tag = code;
+            item.CheckOnClick = true;
             item.CheckedChanged += GameItem_CheckedChanged;
 
-            
+
             if (Game == code)
             {
                 item.Checked = true;
@@ -143,8 +171,8 @@ namespace GI_Subtitles
         private ToolStripMenuItem CreateInputItem(string code, string displayName)
         {
             ToolStripMenuItem item = new ToolStripMenuItem(displayName);
-            item.Tag = code; 
-            item.CheckOnClick = true; 
+            item.Tag = code;
+            item.CheckOnClick = true;
             item.CheckedChanged += InputItem_CheckedChanged;
 
             if (InputLanguage == code)
@@ -154,7 +182,7 @@ namespace GI_Subtitles
             return item;
         }
 
-        
+
         private void InputItem_CheckedChanged(object sender, EventArgs e)
         {
             ToolStripMenuItem selectedLanguage = sender as ToolStripMenuItem;
@@ -186,8 +214,8 @@ namespace GI_Subtitles
         private ToolStripMenuItem CreateOutputItem(string code, string displayName)
         {
             ToolStripMenuItem item = new ToolStripMenuItem(displayName);
-            item.Tag = code; 
-            item.CheckOnClick = true; 
+            item.Tag = code;
+            item.CheckOnClick = true;
             item.CheckedChanged += OutputItem_CheckedChanged;
 
             if (OutputLanguage == code)
@@ -234,8 +262,8 @@ namespace GI_Subtitles
         private ToolStripMenuItem CreateSizeItem(string code)
         {
             ToolStripMenuItem item = new ToolStripMenuItem(code);
-            item.Tag = code; 
-            item.CheckOnClick = true; 
+            item.Tag = code;
+            item.CheckOnClick = true;
             item.CheckedChanged += SizeItem_CheckedChanged;
             if (Size == code)
             {

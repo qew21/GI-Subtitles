@@ -121,6 +121,10 @@
       <Project>{ab10d356-2d95-4460-96ca-9a7129ad0a76}</Project>
       <Name>PaddleOCRSharp</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Screenshot\Screenshot.csproj">
+      <Project>{38b15fc5-1ea1-45e6-a219-9d5dfe95aff0}</Project>
+      <Name>Screenshot</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\mask.ico" />
