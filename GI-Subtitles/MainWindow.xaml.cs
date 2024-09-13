@@ -26,6 +26,9 @@ using System.Windows.Shapes;
 using static System.Net.Mime.MediaTypeNames;
 using Path = System.IO.Path;
 using System.Configuration;
+using System.Media;
+using static log4net.Appender.RollingFileAppender;
+using System.Runtime.Remoting.Contexts;
 
 
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
@@ -57,6 +60,18 @@ namespace GI_Subtitles
         public static extern int SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int x, int y, int Width, int Height, int flags);
         [DllImport("User32.dll")]
         private static extern int GetDpiForSystem();
+        [DllImport("user32.dll")]
+        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [DllImport("user32.dll")]
+        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        private const int HOTKEY_ID_1 = 9000; // 自定义热键ID
+        private const int HOTKEY_ID_2 = 9001; // 自定义热键ID
+        private const uint MOD_CTRL = 0x0002; // Ctrl键
+        private const uint MOD_SHIFT = 0x0004; // Shift键
+        private const uint VK_S = 0x53; // S键的虚拟键码
+        private const uint VK_R = 0x52; // R键的虚拟键码
         private double Scale = GetDpiForSystem() / 96f;
         Dictionary<string, string> BitmapDict = new Dictionary<string, string>();
         string InputLanguage = ConfigurationManager.AppSettings["Input"];
@@ -68,38 +83,54 @@ namespace GI_Subtitles
         public MainWindow()
         {
             InitializeComponent();
+            Loaded += MainWindow_Loaded;
             notify = new INotifyIcon();
             notifyIcon = notify.InitializeNotifyIcon(Scale);
+
             LoadEngine();
             string testFile = "testOCR.png";
             if (File.Exists(testFile))
             {
+                DateTime dateTime = DateTime.Now;
                 OCRResult ocrResult = engine.DetectText(testFile);
                 ocrText = ocrResult.Text;
-                Console.WriteLine(ocrText);
+                Console.WriteLine($"Convert ocrResult: {ocrText}, cost {(DateTime.Now - dateTime).TotalMilliseconds}ms");
+                dateTime = DateTime.Now;
+                string res = VoiceContentHelper.FindClosestMatch(ocrText, notify.contentDict);
+                Console.WriteLine($"Convert ocrResult: {res}, cost {(DateTime.Now - dateTime).TotalMilliseconds}ms");
             }
-            else
+
+            if (OutputLanguage == "CHS")
             {
-                if (OutputLanguage == "CHS")
-                {
-                    userName = "旅行者";
-                }
-
-
-                OCRTimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
-                OCRTimer.Tick += GetOCR;    //委托，要执行的方法
-                OCRTimer.Start();
-
-                UITimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
-                UITimer.Tick += UpdateText;    //委托，要执行的方法
-                UITimer.Start();
-
-                SetWindowPos(new WindowInteropHelper(this).Handle, -1, 0, 0, 0, 0, 1 | 2 | 0x0010);
-                System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
-                this.Width = workingArea.Width;
-                this.Top = workingArea.Bottom / Scale - this.Height;
-                this.Left = workingArea.Left / Scale;
+                userName = "旅行者";
             }
+
+
+            OCRTimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
+            OCRTimer.Tick += GetOCR;    //委托，要执行的方法
+
+
+            UITimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
+            UITimer.Tick += UpdateText;    //委托，要执行的方法
+
+
+            SetWindowPos(new WindowInteropHelper(this).Handle, -1, 0, 0, 0, 0, 1 | 2 | 0x0010);
+            System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
+            this.Width = workingArea.Width;
+            this.Top = workingArea.Bottom / Scale - this.Height;
+            this.Left = workingArea.Left / Scale;
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 获取窗口句柄
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+            RegisterHotKey(handle, HOTKEY_ID_1, MOD_CTRL | MOD_SHIFT, VK_S);
+            RegisterHotKey(handle, HOTKEY_ID_2, MOD_CTRL | MOD_SHIFT, VK_R);
+
+            // 监听窗口消息
+            HwndSource source = HwndSource.FromHwnd(handle);
+            source.AddHook(WndProc);
         }
 
         public void GetOCR(object sender, EventArgs e)
@@ -107,6 +138,7 @@ namespace GI_Subtitles
             if (Interlocked.Exchange(ref OCR_TIMER, 1) == 0)
             {
                 Logger.Log.Debug("Start OCR");
+                DateTime dateTime = DateTime.Now;
                 try
                 {
                     System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
@@ -181,6 +213,7 @@ namespace GI_Subtitles
                         }
                         else
                         {
+                            DateTime dateTime = DateTime.Now;
                             res = VoiceContentHelper.FindClosestMatch(ocrText, notify.contentDict);
                             Logger.Log.Debug($"Convert ocrResult: {res}");
                             res = res.Replace("{NICKNAME}", userName);
@@ -235,6 +268,9 @@ namespace GI_Subtitles
         {
             notifyIcon.Dispose();
             notifyIcon = null;
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+            UnregisterHotKey(handle, HOTKEY_ID_1);
+            UnregisterHotKey(handle, HOTKEY_ID_2);
         }
 
 
@@ -250,6 +286,37 @@ namespace GI_Subtitles
         {
             base.OnClosed(e);
             notifyIcon.Dispose(); // 清理资源
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+        }
+
+        // 处理窗口消息
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            const int WM_HOTKEY = 0x0312;
+            if (msg == WM_HOTKEY)
+            {
+                if (wParam.ToInt32() == HOTKEY_ID_1)
+                {
+                    if (OCRTimer.IsEnabled)
+                    {
+                        OCRTimer.Stop();
+                        UITimer.Stop();
+                        SystemSounds.Asterisk.Play();
+                    }
+                    else
+                    {
+                        OCRTimer.Start();
+                        UITimer.Start();
+                        SystemSounds.Beep.Play();
+                    }
+                    handled = true;
+                }
+                else if (wParam.ToInt32() == HOTKEY_ID_2)
+                {
+                    notify.ChooseRegion();
+                }
+            }
+            return IntPtr.Zero;
         }
 
         public void LoadEngine()
@@ -259,15 +326,15 @@ namespace GI_Subtitles
 
             OCRModelConfig config = null;
             OCRParameter oCRParameter = new OCRParameter();
-            oCRParameter.cpu_math_library_num_threads = 10;//预测并发线程数
+            oCRParameter.cpu_math_library_num_threads = 5;//预测并发线程数
             oCRParameter.enable_mkldnn = true;//web部署该值建议设置为0,否则出错，内存如果使用很大，建议该值也设置为0.
             oCRParameter.cls = false; //是否执行文字方向分类；默认false
             oCRParameter.det = false;//是否开启方向检测，用于检测识别180旋转
             oCRParameter.use_angle_cls = false;//是否开启方向检测，用于检测识别180旋转
-            oCRParameter.det_db_score_mode = true;//是否使用多段线，即文字区域是用多段线还是用矩形，
+            oCRParameter.det_db_score_mode = false;//是否使用多段线，即文字区域是用多段线还是用矩形，
             oCRParameter.max_side_len = 1560;
-            oCRParameter.cls = true;
-            oCRParameter.det = true;
+            oCRParameter.cls = false;
+            oCRParameter.det = false;
 
             if (InputLanguage == "JP")
             {
