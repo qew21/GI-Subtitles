@@ -5,6 +5,7 @@ using System.Configuration;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Controls;
@@ -27,6 +28,7 @@ namespace GI_Subtitles
         string Size = ConfigurationManager.AppSettings["Size"];
         public string[] Region = ConfigurationManager.AppSettings["Region"].Split(',');
         public Dictionary<string, string> contentDict = new Dictionary<string, string>();
+        string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         double Scale = 1;
 
 
@@ -69,15 +71,23 @@ namespace GI_Subtitles
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("20"));
 
 
+            ToolStripMenuItem dataItem = new ToolStripMenuItem("资源包");
             ToolStripMenuItem screenItem = new ToolStripMenuItem("选择区域");
             ToolStripMenuItem exitItem = new ToolStripMenuItem("退出程序");
+            ToolStripMenuItem versionItem = new ToolStripMenuItem(version)
+            {
+                Enabled = false
+            };
+            dataItem.Click += (sender, e) => { DateUpdate(); };
             screenItem.Click += (sender, e) => { ChooseRegion(); };
             exitItem.Click += (sender, e) => { System.Windows.Application.Current.Shutdown(); };
+            contextMenuStrip.Items.Add(versionItem);
             contextMenuStrip.Items.Add(gameSelector);
             contextMenuStrip.Items.Add(inputSelector);
             contextMenuStrip.Items.Add(outputSelector);
             contextMenuStrip.Items.Add(fontSizeSelector);
             contextMenuStrip.Items.Add(new ToolStripSeparator());
+            contextMenuStrip.Items.Add(dataItem);
             contextMenuStrip.Items.Add(screenItem);
             contextMenuStrip.Items.Add(exitItem);
 
@@ -91,15 +101,33 @@ namespace GI_Subtitles
                 Visible = true,
                 ContextMenuStrip = contextMenuStrip
             };
+            CheckData();
+            return notifyIcon;
+        }
+
+        private void DateUpdate()
+        {
+            Data data = new Data(version, Game, InputLanguage, OutputLanguage);
+            data.Show();
+        }
+        private void CheckData()
+        {
             if (File.Exists($"{Game}\\TextMap{InputLanguage}.json") && File.Exists($"{Game}\\TextMap{OutputLanguage}.json"))
             {
                 contentDict = VoiceContentHelper.CreateVoiceContentDictionary($"{Game}\\TextMap{InputLanguage}.json", $"{Game}\\TextMap{OutputLanguage}.json");
             }
             else
             {
-                MessageBox.Show($"请在{Game}文件夹内放置{InputLanguage}.json和{OutputLanguage}.json的语言包");
+                DateUpdate();
+                if (File.Exists($"{Game}\\TextMap{InputLanguage}.json") && File.Exists($"{Game}\\TextMap{OutputLanguage}.json"))
+                {
+                    contentDict = VoiceContentHelper.CreateVoiceContentDictionary($"{Game}\\TextMap{InputLanguage}.json", $"{Game}\\TextMap{OutputLanguage}.json");
+                }
+                else
+                {
+                    MessageBox.Show($"请在{Game}文件夹内放置{InputLanguage}.json和{OutputLanguage}.json的语言包");
+                }
             }
-            return notifyIcon;
         }
 
         public void ChooseRegion()
@@ -156,14 +184,7 @@ namespace GI_Subtitles
                     config.AppSettings.Settings["Game"].Value = newGame;
                     config.Save(ConfigurationSaveMode.Modified);
                     ConfigurationManager.RefreshSection("appSettings");
-                    if (File.Exists($"{Game}\\TextMap{InputLanguage}.json") && File.Exists($"{Game}\\TextMap{OutputLanguage}.json"))
-                    {
-                        contentDict = VoiceContentHelper.CreateVoiceContentDictionary($"{Game}\\TextMap{InputLanguage}.json", $"{Game}\\TextMap{OutputLanguage}.json");
-                    }
-                    else
-                    {
-                        MessageBox.Show($"请在{Game}文件夹内放置{InputLanguage}.json和{OutputLanguage}.json的语言包");
-                    }
+                    CheckData();
                 }
             }
         }
@@ -246,15 +267,7 @@ namespace GI_Subtitles
                     config.AppSettings.Settings["Output"].Value = newOutput;
                     config.Save(ConfigurationSaveMode.Modified);
                     ConfigurationManager.RefreshSection("appSettings");
-                    if (File.Exists($"{Game}\\TextMap{InputLanguage}.json") && File.Exists($"{Game}\\TextMap{OutputLanguage}.json"))
-                    {
-                        contentDict = VoiceContentHelper.CreateVoiceContentDictionary($"{Game}\\TextMap{InputLanguage}.json", $"{Game}\\TextMap{OutputLanguage}.json");
-                    }
-                    else
-                    {
-                        MessageBox.Show($"请在{Game}文件夹内放置{InputLanguage}.json和{OutputLanguage}.json的语言包");
-                    }
-
+                    CheckData();
                 }
             }
         }

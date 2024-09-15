@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>
-        net40;
+        net45;
     </TargetFrameworks>
 	   <PackageTags>OCR;Paddle;AI;CV;PaddleOCR;character recognition;NET;Csharp</PackageTags>
 	  <IsPublishable>False</IsPublishable>
@@ -54,7 +54,7 @@
 	</ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 

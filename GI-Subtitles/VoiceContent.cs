@@ -88,7 +88,6 @@ public static class VoiceContentHelper
         {
             return "";
         }
-
     }
 
     private static int CalculateLevenshteinDistance(string a, string b)

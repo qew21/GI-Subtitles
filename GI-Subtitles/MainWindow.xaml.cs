@@ -94,6 +94,7 @@ namespace GI_Subtitles
                 DateTime dateTime = DateTime.Now;
                 OCRResult ocrResult = engine.DetectText(testFile);
                 ocrText = ocrResult.Text;
+                ocrText += '.';
                 Console.WriteLine($"Convert ocrResult: {ocrText}, cost {(DateTime.Now - dateTime).TotalMilliseconds}ms");
                 dateTime = DateTime.Now;
                 string res = VoiceContentHelper.FindClosestMatch(ocrText, notify.contentDict);
