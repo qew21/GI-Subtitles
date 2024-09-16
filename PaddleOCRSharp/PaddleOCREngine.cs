@@ -45,7 +45,7 @@ namespace PaddleOCRSharp
 
         [DllImport(PaddleOCRdllName, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         internal static extern int FreeEngine();
-       
+
 
         #endregion
 
@@ -68,7 +68,7 @@ namespace PaddleOCRSharp
             if (parameter == null) parameter = new OCRParameter();
             if (config == null)
             {
-                string root= GetRootDirectory();
+                string root = GetRootDirectory();
                 config = new OCRModelConfig();
                 string modelPathroot = root + @"\inference";
                 config.det_infer = modelPathroot + @"\ch_PP-OCRv3_det_infer";
@@ -88,7 +88,7 @@ namespace PaddleOCRSharp
         /// </summary>
         /// <param name="config">模型配置对象，如果为空则按默认值</param>
         /// <param name="parameterjson">识别参数json字符串</param>
-        public PaddleOCREngine(OCRModelConfig config, string parameterjson):base()
+        public PaddleOCREngine(OCRModelConfig config, string parameterjson) : base()
         {
 #if NET35
 
@@ -106,13 +106,13 @@ namespace PaddleOCRSharp
                 config.det_infer = modelPathroot + @"\ch_PP-OCRv3_det_infer";
                 config.cls_infer = modelPathroot + @"\ch_ppocr_mobile_v2.0_cls_infer";
                 config.rec_infer = modelPathroot + @"\ch_PP-OCRv3_rec_infer";
-                config.keys = modelPathroot + @"\ppocr_keys.txt"; 
+                config.keys = modelPathroot + @"\ppocr_keys.txt";
             }
-            if ( string.IsNullOrEmpty(parameterjson))
+            if (string.IsNullOrEmpty(parameterjson))
             {
                 parameterjson = GetRootDirectory();
                 parameterjson += @"\inference\PaddleOCR.config.json";
-                if(!File.Exists(parameterjson)) throw new FileNotFoundException(parameterjson);
+                if (!File.Exists(parameterjson)) throw new FileNotFoundException(parameterjson);
                 parameterjson = File.ReadAllText(parameterjson);
             }
             if (!Directory.Exists(config.det_infer)) throw new DirectoryNotFoundException(config.det_infer);
@@ -130,8 +130,7 @@ namespace PaddleOCRSharp
         {
             if (!File.Exists(imagefile)) throw new Exception($"文件{imagefile}不存在");
             var imagebyte = File.ReadAllBytes(imagefile);
-            var result= DetectText(imagebyte);
-            imagebyte = null;
+            var result = DetectText(imagebyte);
             return result;
         }
 
@@ -140,23 +139,22 @@ namespace PaddleOCRSharp
         /// </summary>
         /// <param name="image">图像</param>
         /// <returns>OCR识别结果</returns>
-       
+
         public OCRResult DetectText(Image image)
         {
             if (image == null) throw new ArgumentNullException("image");
             var imagebyte = ImageToBytes(image);
             var result = DetectText(imagebyte);
-            imagebyte = null;
             return result;
         }
-      
+
         /// <summary>
         ///文本识别
         /// </summary>
         /// <param name="imagebyte">图像内存流</param>
         /// <returns>OCR识别结果</returns>
         public OCRResult DetectText(byte[] imagebyte)
-        { 
+        {
             if (imagebyte == null) throw new ArgumentNullException("imagebyte");
             var ptrResult = DetectByte(imagebyte, imagebyte.LongLength);
             return ConvertResult(ptrResult);
@@ -172,14 +170,14 @@ namespace PaddleOCRSharp
             if (imagebase64 == null || imagebase64 == "") throw new ArgumentNullException("imagebase64");
             IntPtr ptrResult = DetectBase64(imagebase64);
             return ConvertResult(ptrResult);
-    }
+        }
 
-    /// <summary>
-    /// 结果解析
-    /// </summary>
-    /// <param name="ptrResult"></param>
-    /// <returns></returns>
-    private OCRResult ConvertResult(IntPtr ptrResult)
+        /// <summary>
+        /// 结果解析
+        /// </summary>
+        /// <param name="ptrResult"></param>
+        /// <returns></returns>
+        private OCRResult ConvertResult(IntPtr ptrResult)
         {
             OCRResult result = new OCRResult();
             try
@@ -197,7 +195,7 @@ namespace PaddleOCRSharp
             return result;
         }
 
-    #endregion
+        #endregion
 
         #region 表格识别
 
@@ -208,10 +206,10 @@ namespace PaddleOCRSharp
         /// <returns>表格识别结果</returns>
         public OCRStructureResult DetectStructure(Image image)
         {
-            
+
             if (image == null) throw new ArgumentNullException("image");
             var imagebyte = ImageToBytes(image);
-            OCRResult result= DetectText(imagebyte);
+            OCRResult result = DetectText(imagebyte);
             List<TextBlock> blocks = result.TextBlocks;
             if (blocks == null || blocks.Count == 0) return new OCRStructureResult();
             var listys = getzeroindexs(blocks.OrderBy(x => x.BoxPoints[0].Y).Select(x => x.BoxPoints[0].Y).ToArray(), 10);
@@ -263,7 +261,7 @@ namespace PaddleOCRSharp
             }
             return structureResult;
         }
-       
+
         /// <summary>
         /// 计算表格分割
         /// </summary>
@@ -291,7 +289,7 @@ namespace PaddleOCRSharp
         /// <summary>
         /// 释放对象
         /// </summary>
-        public  override void Dispose()
+        public override void Dispose()
         {
             FreeEngine();
         }

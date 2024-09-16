@@ -8,9 +8,11 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using ZedGraph;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace GI_Subtitles
 {
@@ -30,6 +32,7 @@ namespace GI_Subtitles
         public Dictionary<string, string> contentDict = new Dictionary<string, string>();
         string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         double Scale = 1;
+        string userName = "Traveler";
 
 
         public NotifyIcon InitializeNotifyIcon(double scale)
@@ -63,35 +66,33 @@ namespace GI_Subtitles
             outputSelector.DropDownItems.Add(CreateOutputItem("VI", "Tiếng Việt"));
 
             fontSizeSelector = new ToolStripMenuItem("字号选择");
-            fontSizeSelector.DropDownItems.Add(CreateSizeItem("10"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("12"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("14"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("16"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("18"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("20"));
+            fontSizeSelector.DropDownItems.Add(CreateSizeItem("22"));
 
-
-            ToolStripMenuItem dataItem = new ToolStripMenuItem("资源包");
-            ToolStripMenuItem screenItem = new ToolStripMenuItem("选择区域");
+            ToolStripMenuItem dataItem = new ToolStripMenuItem("语言包");
+            ToolStripMenuItem aboutItem = new ToolStripMenuItem("帮助");
             ToolStripMenuItem exitItem = new ToolStripMenuItem("退出程序");
             ToolStripMenuItem versionItem = new ToolStripMenuItem(version)
             {
                 Enabled = false
             };
             dataItem.Click += (sender, e) => { DateUpdate(); };
-            screenItem.Click += (sender, e) => { ChooseRegion(); };
+            aboutItem.Click += (sender, e) => { About about = new About(version); about.Show(); };
             exitItem.Click += (sender, e) => { System.Windows.Application.Current.Shutdown(); };
             contextMenuStrip.Items.Add(versionItem);
+            contextMenuStrip.Items.Add(new ToolStripSeparator());
             contextMenuStrip.Items.Add(gameSelector);
             contextMenuStrip.Items.Add(inputSelector);
             contextMenuStrip.Items.Add(outputSelector);
             contextMenuStrip.Items.Add(fontSizeSelector);
             contextMenuStrip.Items.Add(new ToolStripSeparator());
             contextMenuStrip.Items.Add(dataItem);
-            contextMenuStrip.Items.Add(screenItem);
+            contextMenuStrip.Items.Add(aboutItem);
             contextMenuStrip.Items.Add(exitItem);
-
-
 
             Uri iconUri = new Uri("pack://application:,,,/Resources/mask.ico");
             Stream iconStream = System.Windows.Application.GetResourceStream(iconUri).Stream;
@@ -101,34 +102,62 @@ namespace GI_Subtitles
                 Visible = true,
                 ContextMenuStrip = contextMenuStrip
             };
-            CheckData();
+            Task.Run(async () => contentDict = await CheckDataAsync());
             return notifyIcon;
         }
+
 
         private void DateUpdate()
         {
             Data data = new Data(version, Game, InputLanguage, OutputLanguage);
-            data.Show();
+            data.ShowDialog();
         }
-        private void CheckData()
+
+
+        private async Task<Dictionary<string, string>> CheckDataAsync()
         {
-            if (File.Exists($"{Game}\\TextMap{InputLanguage}.json") && File.Exists($"{Game}\\TextMap{OutputLanguage}.json"))
+            Dictionary<string, string> content = new Dictionary<string, string>();
+            bool filesExist = File.Exists($"{Game}\\TextMap{InputLanguage}.json") &&
+                              File.Exists($"{Game}\\TextMap{OutputLanguage}.json");
+
+            if (OutputLanguage == "CHS")
             {
-                contentDict = VoiceContentHelper.CreateVoiceContentDictionary($"{Game}\\TextMap{InputLanguage}.json", $"{Game}\\TextMap{OutputLanguage}.json");
+                userName = "旅行者";
+            }
+
+            if (filesExist)
+            {
+                content = await Task.Run(() =>
+                    VoiceContentHelper.CreateVoiceContentDictionary(
+                        $"{Game}\\TextMap{InputLanguage}.json",
+                        $"{Game}\\TextMap{OutputLanguage}.json",
+                        userName)
+                    );
             }
             else
             {
                 DateUpdate();
-                if (File.Exists($"{Game}\\TextMap{InputLanguage}.json") && File.Exists($"{Game}\\TextMap{OutputLanguage}.json"))
+
+                filesExist = File.Exists($"{Game}\\TextMap{InputLanguage}.json") &&
+                             File.Exists($"{Game}\\TextMap{OutputLanguage}.json");
+
+                if (filesExist)
                 {
-                    contentDict = VoiceContentHelper.CreateVoiceContentDictionary($"{Game}\\TextMap{InputLanguage}.json", $"{Game}\\TextMap{OutputLanguage}.json");
+                    content = await Task.Run(() =>
+                        VoiceContentHelper.CreateVoiceContentDictionary(
+                            $"{Game}\\TextMap{InputLanguage}.json",
+                            $"{Game}\\TextMap{OutputLanguage}.json",
+                            userName)
+                        );
                 }
                 else
                 {
                     MessageBox.Show($"请在{Game}文件夹内放置{InputLanguage}.json和{OutputLanguage}.json的语言包");
                 }
             }
+            return content;
         }
+
 
         public void ChooseRegion()
         {
@@ -163,7 +192,7 @@ namespace GI_Subtitles
             return item;
         }
 
-        private void GameItem_CheckedChanged(object sender, EventArgs e)
+        private async void GameItem_CheckedChanged(object sender, EventArgs e)
         {
             ToolStripMenuItem selectedGame = sender as ToolStripMenuItem;
             if (selectedGame != null && selectedGame.Checked)
@@ -184,7 +213,7 @@ namespace GI_Subtitles
                     config.AppSettings.Settings["Game"].Value = newGame;
                     config.Save(ConfigurationSaveMode.Modified);
                     ConfigurationManager.RefreshSection("appSettings");
-                    CheckData();
+                    contentDict = await CheckDataAsync();
                 }
             }
         }
@@ -246,7 +275,7 @@ namespace GI_Subtitles
             return item;
         }
 
-        private void OutputItem_CheckedChanged(object sender, EventArgs e)
+        private async void OutputItem_CheckedChanged(object sender, EventArgs e)
         {
             ToolStripMenuItem selectedOutput = sender as ToolStripMenuItem;
             if (selectedOutput != null && selectedOutput.Checked)
@@ -267,7 +296,7 @@ namespace GI_Subtitles
                     config.AppSettings.Settings["Output"].Value = newOutput;
                     config.Save(ConfigurationSaveMode.Modified);
                     ConfigurationManager.RefreshSection("appSettings");
-                    CheckData();
+                    contentDict = await CheckDataAsync();
                 }
             }
         }

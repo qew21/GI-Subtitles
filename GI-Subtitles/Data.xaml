@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GI_Subtitles"
         mc:Ignorable="d"
-        Title="资源包更新" Height="450" Width="800">
+        Title="语言包更新" Height="450" Width="800" Icon="Resources/mask.ico">
     <Grid>
         <Grid Margin="10">
             <Grid.RowDefinitions>

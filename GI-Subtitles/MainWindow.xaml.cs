@@ -51,11 +51,13 @@ namespace GI_Subtitles
         string ocrText = null;
         private NotifyIcon notifyIcon;
         string lastRes = null;
-        Dictionary<string, string> resDict = new Dictionary<string, string>();
+        readonly Dictionary<string, string> resDict = new Dictionary<string, string>();
         public System.Windows.Threading.DispatcherTimer OCRTimer = new System.Windows.Threading.DispatcherTimer();
         public System.Windows.Threading.DispatcherTimer UITimer = new System.Windows.Threading.DispatcherTimer();
-        private bool isDraggable = false;
-        string outpath = Path.Combine(Environment.CurrentDirectory, "out");
+        private bool isDraggable = true;
+        readonly string outpath = Path.Combine(Environment.CurrentDirectory, "out");
+        readonly bool debug = ConfigurationManager.AppSettings["Debug"] == "1";
+        readonly bool mtuliline = ConfigurationManager.AppSettings["Multiline"] == "1";
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern int SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int x, int y, int Width, int Height, int flags);
         [DllImport("User32.dll")]
@@ -72,11 +74,9 @@ namespace GI_Subtitles
         private const uint MOD_SHIFT = 0x0004; // Shift键
         private const uint VK_S = 0x53; // S键的虚拟键码
         private const uint VK_R = 0x52; // R键的虚拟键码
-        private double Scale = GetDpiForSystem() / 96f;
+        private readonly double Scale = GetDpiForSystem() / 96f;
         Dictionary<string, string> BitmapDict = new Dictionary<string, string>();
         string InputLanguage = ConfigurationManager.AppSettings["Input"];
-        string OutputLanguage = ConfigurationManager.AppSettings["Output"];
-        string userName = "Traveler";
         INotifyIcon notify;
 
 
@@ -84,9 +84,21 @@ namespace GI_Subtitles
         {
             InitializeComponent();
             Loaded += MainWindow_Loaded;
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 获取窗口句柄
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+            RegisterHotKey(handle, HOTKEY_ID_1, MOD_CTRL | MOD_SHIFT, VK_S);
+            RegisterHotKey(handle, HOTKEY_ID_2, MOD_CTRL | MOD_SHIFT, VK_R);
+
+            // 监听窗口消息
+            HwndSource source = HwndSource.FromHwnd(handle);
+            source.AddHook(WndProc);
+
             notify = new INotifyIcon();
             notifyIcon = notify.InitializeNotifyIcon(Scale);
-
             LoadEngine();
             string testFile = "testOCR.png";
             if (File.Exists(testFile))
@@ -101,19 +113,12 @@ namespace GI_Subtitles
                 Console.WriteLine($"Convert ocrResult: {res}, cost {(DateTime.Now - dateTime).TotalMilliseconds}ms");
             }
 
-            if (OutputLanguage == "CHS")
-            {
-                userName = "旅行者";
-            }
-
-
             OCRTimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
             OCRTimer.Tick += GetOCR;    //委托，要执行的方法
 
 
             UITimer.Interval = new TimeSpan(0, 0, 0, 0, 500);
             UITimer.Tick += UpdateText;    //委托，要执行的方法
-
 
             SetWindowPos(new WindowInteropHelper(this).Handle, -1, 0, 0, 0, 0, 1 | 2 | 0x0010);
             System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
@@ -122,31 +127,17 @@ namespace GI_Subtitles
             this.Left = workingArea.Left / Scale;
         }
 
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
-        {
-            // 获取窗口句柄
-            IntPtr handle = new WindowInteropHelper(this).Handle;
-            RegisterHotKey(handle, HOTKEY_ID_1, MOD_CTRL | MOD_SHIFT, VK_S);
-            RegisterHotKey(handle, HOTKEY_ID_2, MOD_CTRL | MOD_SHIFT, VK_R);
-
-            // 监听窗口消息
-            HwndSource source = HwndSource.FromHwnd(handle);
-            source.AddHook(WndProc);
-        }
-
         public void GetOCR(object sender, EventArgs e)
         {
             if (Interlocked.Exchange(ref OCR_TIMER, 1) == 0)
             {
                 Logger.Log.Debug("Start OCR");
-                DateTime dateTime = DateTime.Now;
                 try
                 {
                     System.Drawing.Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
                     Bitmap target;
                     if (notify.Region[1] == "0")
                     {
-                        System.Windows.Forms.MessageBox.Show("请先选择区域");
                         notify.ChooseRegion();
                     }
                     target = CaptureRegion(Convert.ToInt16(notify.Region[0]), Convert.ToInt16(notify.Region[1]), Convert.ToInt16(notify.Region[2]), Convert.ToInt16(notify.Region[3]));
@@ -160,7 +151,7 @@ namespace GI_Subtitles
                     {
                         OCRResult ocrResult = engine.DetectText(enhanced);
                         ocrText = ocrResult.Text;
-                        if (false)
+                        if (debug)
                         {
                             Logger.Log.Debug(DateTime.Now.ToString("yyyy-MM-dd_HH_mm_ss_ffffff") + ".png");
                             target.Save(DateTime.Now.ToString("yyyy-MM-dd_HH_mm_ss_ffffff") + ".png");
@@ -217,7 +208,6 @@ namespace GI_Subtitles
                             DateTime dateTime = DateTime.Now;
                             res = VoiceContentHelper.FindClosestMatch(ocrText, notify.contentDict);
                             Logger.Log.Debug($"Convert ocrResult: {res}");
-                            res = res.Replace("{NICKNAME}", userName);
                             resDict[ocrText] = res;
                             if (BitmapDict.Count > 10)
                             {
@@ -264,6 +254,14 @@ namespace GI_Subtitles
             }
         }
 
+        private void Window_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed && isDraggable)
+            {
+                DragMove();
+            }
+        }
+
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -275,19 +273,16 @@ namespace GI_Subtitles
         }
 
 
-        private void Window_MouseDown(object sender, MouseButtonEventArgs e)
+        public void SwitchIcon(string iconName)
         {
-            if (e.LeftButton == MouseButtonState.Pressed && isDraggable)
-            {
-                DragMove();
-            }
-        }
+            Uri iconUri = new Uri($"pack://application:,,,/Resources/{iconName}");
+            Stream iconStream = System.Windows.Application.GetResourceStream(iconUri).Stream;
 
-        protected override void OnClosed(EventArgs e)
-        {
-            base.OnClosed(e);
-            notifyIcon.Dispose(); // 清理资源
-            IntPtr handle = new WindowInteropHelper(this).Handle;
+            // 创建新的Icon对象
+            Icon newIcon = new Icon(iconStream);
+
+            // 更新NotifyIcon的图标
+            notifyIcon.Icon = newIcon;
         }
 
         // 处理窗口消息
@@ -302,13 +297,15 @@ namespace GI_Subtitles
                     {
                         OCRTimer.Stop();
                         UITimer.Stop();
-                        SystemSounds.Asterisk.Play();
+                        SystemSounds.Hand.Play();
+                        SwitchIcon("mask.ico");
                     }
                     else
                     {
                         OCRTimer.Start();
                         UITimer.Start();
-                        SystemSounds.Beep.Play();
+                        SystemSounds.Exclamation.Play();
+                        SwitchIcon("running.ico");
                     }
                     handled = true;
                 }
@@ -326,16 +323,18 @@ namespace GI_Subtitles
             { Directory.CreateDirectory(outpath); }
 
             OCRModelConfig config = null;
-            OCRParameter oCRParameter = new OCRParameter();
-            oCRParameter.cpu_math_library_num_threads = 5;//预测并发线程数
-            oCRParameter.enable_mkldnn = true;//web部署该值建议设置为0,否则出错，内存如果使用很大，建议该值也设置为0.
-            oCRParameter.cls = false; //是否执行文字方向分类；默认false
-            oCRParameter.det = false;//是否开启方向检测，用于检测识别180旋转
-            oCRParameter.use_angle_cls = false;//是否开启方向检测，用于检测识别180旋转
-            oCRParameter.det_db_score_mode = false;//是否使用多段线，即文字区域是用多段线还是用矩形，
-            oCRParameter.max_side_len = 1560;
-            oCRParameter.cls = false;
-            oCRParameter.det = false;
+            OCRParameter oCRParameter = new OCRParameter
+            {
+                cpu_math_library_num_threads = 5,//预测并发线程数
+                enable_mkldnn = true,//web部署该值建议设置为0,否则出错，内存如果使用很大，建议该值也设置为0.
+                cls = false, //是否执行文字方向分类；默认false
+                det = false,//是否开启方向检测，用于检测识别180旋转
+                use_angle_cls = false,//是否开启方向检测，用于检测识别180旋转
+                det_db_score_mode = false,//是否使用多段线，即文字区域是用多段线还是用矩形，
+                max_side_len = 1560
+            };
+            oCRParameter.cls = mtuliline;
+            oCRParameter.det = mtuliline;
 
             if (InputLanguage == "JP")
             {

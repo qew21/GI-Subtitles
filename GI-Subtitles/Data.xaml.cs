@@ -38,7 +38,7 @@ namespace GI_Subtitles
         public Data(string version, string game, string inputLanguage, string outputLanguage)
         {
             InitializeComponent();
-            this.Title += version;
+            this.Title += $"({version})";
             gameFoder = game;
             localFile1 = $"{gameFoder}\\TextMap{inputLanguage}.json";
             localFile2 = $"{gameFoder}\\TextMap{outputLanguage}.json";

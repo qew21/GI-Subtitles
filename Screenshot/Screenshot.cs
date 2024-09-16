@@ -65,21 +65,5 @@ namespace Screenshot
                 return bitmap.ToBitmapSource();
             }
         }
-
-        private static BitmapSource GetBitmapRegion(BitmapSource bitmap, Rect rect)
-        {
-            if (rect.Width <= 0 || rect.Height <= 0)
-            {
-                return null;
-            }
-
-            return new CroppedBitmap(bitmap, new Int32Rect
-            {
-                X = (int)rect.X,
-                Y = (int)rect.Y,
-                Width = (int)rect.Width,
-                Height = (int)rect.Height
-            });
-        }
     }
 }

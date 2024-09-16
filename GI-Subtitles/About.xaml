@@ -1,0 +1,26 @@
+﻿<Window x:Class="GI_Subtitles.About"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GI_Subtitles"
+        mc:Ignorable="d"
+        Title="关于程序" Height="450" Width="430" Icon="Resources/mask.ico">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Center">
+            <TextBlock Text="仓库地址：" VerticalAlignment="Center"/>
+            <TextBox x:Name="GithubUrl" TextWrapping="Wrap" Text="https://github.com/qew21/GI-Subtitles" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" FontFamily="Segoe UI" FontSize="14" Foreground="Blue" TextDecorations="Underline"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Center">
+            <Image Width="360" Height="360" Source="Resources/qrcode.jpg"></Image>
+        </StackPanel>
+    </Grid>
+</Window>

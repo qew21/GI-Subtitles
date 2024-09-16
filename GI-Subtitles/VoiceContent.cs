@@ -6,18 +6,10 @@ using System.Text.RegularExpressions;
 using GI_Subtitles;
 using Newtonsoft.Json;
 
-public class VoiceContentData
-{
-    public string AvatarName { get; set; }
-    public string TalkName { get; set; }
-    public string AvatarSwitch { get; set; }
-    public string VoiceContent { get; set; }
-    public string SourceFileName { get; set; }
-}
 
 public static class VoiceContentHelper
 {
-    public static Dictionary<string, string> CreateVoiceContentDictionary(string chsFilePath, string enFilePath)
+    public static Dictionary<string, string> CreateVoiceContentDictionary(string chsFilePath, string enFilePath, string userName)
     {
         var jsonFilePath = Path.Combine(Path.GetDirectoryName(chsFilePath),
             $"{Path.GetFileNameWithoutExtension(chsFilePath)}_{Path.GetFileNameWithoutExtension(enFilePath)}.json");
@@ -37,6 +29,7 @@ public static class VoiceContentHelper
                 string pattern2 = @"</?unbreak>";
                 string temp = chsItem.Value;
                 temp = Regex.Replace(temp, pattern1, "");
+                enVoiceContent = enVoiceContent.Replace("{NICKNAME}", userName).Replace("#", "");
                 enVoiceContent = Regex.Replace(enVoiceContent, pattern1, "");
                 temp = Regex.Replace(temp, pattern2, "");
                 enVoiceContent = Regex.Replace(enVoiceContent, pattern2, "");
@@ -88,6 +81,7 @@ public static class VoiceContentHelper
         {
             return "";
         }
+
     }
 
     private static int CalculateLevenshteinDistance(string a, string b)

@@ -25,26 +25,26 @@ namespace PaddleOCRSharp
     /// <summary>
     /// PaddleOCR NET帮助类
     /// </summary>
-    public  class PaddleStructureEngine:EngineBase
+    public class PaddleStructureEngine : EngineBase
     {
         #region PaddleOCR API
-       
+
         [DllImport(PaddleOCRdllName, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         internal static extern void StructureInitialize(string det_infer, string rec_infer, string keys, string table_model_dir, string table_char_dict_path, StructureParameter parameter);
         [DllImport(PaddleOCRdllName, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         internal static extern void StructureInitializejson(string det_infer, string rec_infer, string keys, string table_model_dir, string table_char_dict_path, string parameter);
 
         [DllImport(PaddleOCRdllName, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
-        internal static extern IntPtr GetStructureDetectFile(  string imagefile);
-       
-        [DllImport(PaddleOCRdllName, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
-        internal static extern IntPtr GetStructureDetectByte(  byte[] imagebytedata, long size);
+        internal static extern IntPtr GetStructureDetectFile(string imagefile);
 
         [DllImport(PaddleOCRdllName, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
-        internal static extern IntPtr GetStructureDetectBase64( string imagebase64);
-       
+        internal static extern IntPtr GetStructureDetectByte(byte[] imagebytedata, long size);
+
         [DllImport(PaddleOCRdllName, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
-        internal static extern void FreeStructureEngine( );
+        internal static extern IntPtr GetStructureDetectBase64(string imagebase64);
+
+        [DllImport(PaddleOCRdllName, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
+        internal static extern void FreeStructureEngine();
         #endregion
 
         /// <summary>
@@ -55,21 +55,21 @@ namespace PaddleOCRSharp
         public PaddleStructureEngine(StructureModelConfig config, StructureParameter parameter) : base()
         {
             if (IsCPUSupport() <= 0) throw new NotSupportedException($"当前CPU的指令集不支持PaddleOCR");
-           
+
             if (parameter == null) parameter = new StructureParameter();
             if (config == null)
             {
                 string root = GetRootDirectory();
                 config = new StructureModelConfig();
                 string modelPathroot = root + @"\inference";
-             
+
                 config.det_infer = modelPathroot + @"\ch_PP-OCRv3_det_infer";
                 config.rec_infer = modelPathroot + @"\ch_PP-OCRv3_rec_infer";
                 config.keys = modelPathroot + @"\ppocr_keys.txt";
                 config.table_model_dir = modelPathroot + @"\ch_ppstructure_mobile_v2.0_SLANet_infer";
                 config.table_char_dict_path = modelPathroot + @"\table_structure_dict_ch.txt";
             }
-            StructureInitialize(config.det_infer,  config.rec_infer, config.keys, config.table_model_dir, config.table_char_dict_path, parameter);
+            StructureInitialize(config.det_infer, config.rec_infer, config.keys, config.table_model_dir, config.table_char_dict_path, parameter);
         }
         /// <summary>
         /// PaddleStructureEngine识别引擎对象初始化
@@ -80,7 +80,7 @@ namespace PaddleOCRSharp
         {
             if (IsCPUSupport() <= 0) throw new NotSupportedException($"当前CPU的指令集不支持PaddleOCR");
 
-           
+
             if (config == null)
             {
                 string root = GetRootDirectory();
@@ -110,9 +110,9 @@ namespace PaddleOCRSharp
         public string StructureDetectFile(string imagefile)
         {
             if (!System.IO.File.Exists(imagefile)) throw new Exception($"文件{imagefile}不存在");
-            IntPtr presult =  GetStructureDetectFile( imagefile);
-            var result= Marshal.PtrToStringUni(presult);
-            Marshal.FreeHGlobal(presult);   
+            IntPtr presult = GetStructureDetectFile(imagefile);
+            var result = Marshal.PtrToStringUni(presult);
+            Marshal.FreeHGlobal(presult);
             return result;
         }
 
@@ -126,7 +126,6 @@ namespace PaddleOCRSharp
             if (image == null) throw new ArgumentNullException("image");
             var imagebyte = ImageToBytes(image);
             var result = StructureDetect(imagebyte);
-            imagebyte = null;
             return result;
         }
         /// <summary>
@@ -136,9 +135,9 @@ namespace PaddleOCRSharp
         /// <returns>表格识别结果</returns>
         public string StructureDetect(byte[] imagebyte)
         {
-           if (imagebyte == null) throw new ArgumentNullException("imagebyte");
-            IntPtr presult=  GetStructureDetectByte(imagebyte, imagebyte.LongLength);
-            var  result= Marshal.PtrToStringUni(presult);
+            if (imagebyte == null) throw new ArgumentNullException("imagebyte");
+            IntPtr presult = GetStructureDetectByte(imagebyte, imagebyte.LongLength);
+            var result = Marshal.PtrToStringUni(presult);
             Marshal.FreeHGlobal(presult);
             return result;
         }
@@ -150,7 +149,7 @@ namespace PaddleOCRSharp
         public string StructureDetectBase64(string imagebase64)
         {
             if (imagebase64 == null || imagebase64 == "") throw new ArgumentNullException("imagebase64");
-            IntPtr presult= GetStructureDetectBase64( imagebase64);
+            IntPtr presult = GetStructureDetectBase64(imagebase64);
             var result = Marshal.PtrToStringUni(presult);
             Marshal.FreeHGlobal(presult);
             return result;
