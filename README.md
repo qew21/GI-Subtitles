@@ -16,10 +16,10 @@
 然后采用Levenshtein距离匹配现有语言包中文本中对应的名称，  
 再根据名称找到其他语言包中的文本展示出来。
 
-
 ## 示例
+https://www.bilibili.com/video/BV1qxtjeME7e/
 
-https://www.bilibili.com/video/BV1sH4y1e7Qg
+![语言包管理](images/textMap.JPG)
 
 ## 更新
 

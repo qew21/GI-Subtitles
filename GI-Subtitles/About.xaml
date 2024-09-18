@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GI_Subtitles"
         mc:Ignorable="d"
-        Title="关于程序" Height="450" Width="430" Icon="Resources/mask.ico">
+        Title="关于程序" Height="450" Width="430" Icon="Resources/mask.ico" Topmost="True">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

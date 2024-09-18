@@ -18,6 +18,9 @@ using Newtonsoft.Json.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 using System.Net.Http;
 using Newtonsoft.Json;
+using System.Configuration;
+using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace GI_Subtitles
 {
@@ -26,40 +29,159 @@ namespace GI_Subtitles
     /// </summary>
     public partial class Data : Window
     {
-        string localFile1;
-        string localFile2;
         string repoUrl = "https://gitlab.com/Dimbreath/AnimeGameData/-/refs/master/logs_tree/TextMap?format=json&offset=0&ref_type=heads";
-        string gameFoder;
+        string Game = ConfigurationManager.AppSettings["Game"];
+        string InputLanguage = ConfigurationManager.AppSettings["Input"];
+        string OutputLanguage = ConfigurationManager.AppSettings["Output"];
+        string userName = "Traveler";
         private const int MaxRetries = 1; // 最大重试次数
         private static readonly HttpClient client = new HttpClient();
+        public Dictionary<string, string> contentDict = new Dictionary<string, string>();
 
         Stopwatch sw = new Stopwatch();
 
-        public Data(string version, string game, string inputLanguage, string outputLanguage)
+        public Data(string version)
         {
             InitializeComponent();
             this.Title += $"({version})";
-            gameFoder = game;
-            localFile1 = $"{gameFoder}\\TextMap{inputLanguage}.json";
-            localFile2 = $"{gameFoder}\\TextMap{outputLanguage}.json";
-            DownloadURL1.Text = $"https://gitlab.com/Dimbreath/AnimeGameData/-/raw/master/TextMap/TextMap{inputLanguage}.json?inline=false";
-            DownloadURL2.Text = $"https://gitlab.com/Dimbreath/AnimeGameData/-/raw/master/TextMap/TextMap{outputLanguage}.json?inline=false";
-            if (gameFoder == "StarRail")
+            GameSelector.SelectionChanged += OnGameSelectorChanged;
+            InputSelector.SelectionChanged += OnInputSelectorChanged;
+            OutputSelector.SelectionChanged += OnOutputSelectorChanged;
+            DownloadURL1.Text = $"https://gitlab.com/Dimbreath/AnimeGameData/-/raw/master/TextMap/TextMap{InputLanguage}.json?inline=false";
+            DownloadURL2.Text = $"https://gitlab.com/Dimbreath/AnimeGameData/-/raw/master/TextMap/TextMap{OutputLanguage}.json?inline=false";
+            if (Game == "StarRail")
             {
                 repoUrl = "https://api.github.com/repos/Dimbreath/StarRailData";
-                DownloadURL1.Text = $"https://raw.kkgithub.com/Dimbreath/StarRailData/master/TextMap/TextMap{inputLanguage}.json";
-                DownloadURL2.Text = $"https://raw.kkgithub.com/Dimbreath/StarRailData/master/TextMap/TextMap{outputLanguage}.json";
+                DownloadURL1.Text = $"https://raw.kkgithub.com/Dimbreath/StarRailData/master/TextMap/TextMap{InputLanguage}.json";
+                DownloadURL2.Text = $"https://raw.kkgithub.com/Dimbreath/StarRailData/master/TextMap/TextMap{OutputLanguage}.json";
             }
             DisplayLocalFileDates();
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
+        }
 
+        public async Task Load()
+        {
+            await CheckDataAsync();
+        }
 
+        private async void OnGameSelectorChanged(object sender, SelectionChangedEventArgs e)
+        {
+            Dictionary<string, string> GameDict = new Dictionary<string, string>
+            {
+                ["原神"] = "Genshin",
+                ["星穹铁道"] = "StarRail",
+            };
+
+            System.Windows.Controls.ComboBox comboBox = sender as System.Windows.Controls.ComboBox;
+            if (comboBox == null)
+            {
+                return;
+            }
+
+            ComboBoxItem selectedItem = comboBox.SelectedItem as ComboBoxItem;
+            if (selectedItem != null)
+            {
+                string newValue = GameDict[selectedItem.Content.ToString()];
+                if (Game != newValue)
+                {
+                    Game = newValue;
+
+                    Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                    config.AppSettings.Settings["Game"].Value = newValue;
+                    config.Save(ConfigurationSaveMode.Modified);
+                    ConfigurationManager.RefreshSection("appSettings");
+                    await CheckDataAsync();
+                }
+            }
+        }
+
+        private async void OnInputSelectorChanged(object sender, SelectionChangedEventArgs e)
+        {
+            Dictionary<string, string> InputLanguages = new Dictionary<string, string>()
+            {
+                { "简体中文", "CHS"},
+                { "English", "EN"},
+                { "日本語", "JP"}
+            };
+            System.Windows.Controls.ComboBox comboBox = sender as System.Windows.Controls.ComboBox;
+            if (comboBox == null)
+            {
+                return;
+            }
+
+            ComboBoxItem selectedItem = comboBox.SelectedItem as ComboBoxItem;
+            if (selectedItem != null)
+            {
+                string newValue = InputLanguages[selectedItem.Content.ToString()];
+                if (InputLanguage != newValue)
+                {
+                    InputLanguage = newValue;
+
+                    Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                    config.AppSettings.Settings["Input"].Value = InputLanguage;
+                    config.Save(ConfigurationSaveMode.Modified);
+                    ConfigurationManager.RefreshSection("appSettings");
+                    await CheckDataAsync();
+                }
+            }
+        }
+
+        private async void OnOutputSelectorChanged(object sender, SelectionChangedEventArgs e)
+        {
+            Dictionary<string, string> OutputLanguages = new Dictionary<string, string>() { { "简体中文", "CHS" }, { "English", "EN" }, { "日本語", "JP" }, { "繁體中文", "CHT" }, { "Deutsch", "DE" }, { "Español", "ES" }, { "Français", "FR" }, { "Bahasa Indonesia", "ID" }, { "한국어", "KR" }, { "Português", "PT" }, { "Русский", "RU" }, { "ไทย", "TH" }, { "Tiếng Việt", "VI" } };
+            System.Windows.Controls.ComboBox comboBox = sender as System.Windows.Controls.ComboBox;
+            if (comboBox == null)
+            {
+                return;
+            }
+
+            ComboBoxItem selectedItem = comboBox.SelectedItem as ComboBoxItem;
+            if (selectedItem != null)
+            {
+                string newValue = OutputLanguages[selectedItem.Content.ToString()];
+                Console.WriteLine(newValue);
+                if (OutputLanguage != newValue)
+                {
+                    OutputLanguage = newValue;
+
+                    Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                    config.AppSettings.Settings["Output"].Value = OutputLanguage;
+                    config.Save(ConfigurationSaveMode.Modified);
+                    ConfigurationManager.RefreshSection("appSettings");
+                    await CheckDataAsync();
+                }
+            }
+        }
+        public bool FileExists()
+        {
+            return File.Exists($"{Game}\\TextMap{InputLanguage}.json") &&
+                              File.Exists($"{Game}\\TextMap{OutputLanguage}.json");
+        }
+
+        public async Task CheckDataAsync()
+        {
+            if (OutputLanguage == "CHS")
+            {
+                userName = "旅行者";
+            }
+            if (FileExists())
+            {
+                contentDict = await Task.Run(() =>
+                    VoiceContentHelper.CreateVoiceContentDictionary(
+                        $"{Game}\\TextMap{InputLanguage}.json",
+                        $"{Game}\\TextMap{OutputLanguage}.json",
+                        userName)
+                    );
+            }
+            DisplayLocalFileDates();
         }
 
         private void DisplayLocalFileDates()
         {
+            string localFile1 = $"{Game}\\TextMap{InputLanguage}.json";
+            string localFile2 = $"{Game}\\TextMap{OutputLanguage}.json";
             if (File.Exists(localFile1))
             {
                 DateTime modDate1 = File.GetLastWriteTime(localFile1);
@@ -90,7 +212,7 @@ namespace GI_Subtitles
                 response.EnsureSuccessStatusCode();
 
                 string responseText = await response.Content.ReadAsStringAsync();
-                if (gameFoder == "StarRail")
+                if (Game == "StarRail")
                 {
 
                     dynamic json = JsonConvert.DeserializeObject(responseText);
@@ -125,12 +247,15 @@ namespace GI_Subtitles
 
         private async void DownloadButton1_Click(object sender, RoutedEventArgs e)
         {
+            string localFile1 = $"{Game}\\TextMap{InputLanguage}.json";
             await DownloadFileAsync(DownloadURL1.Text, localFile1);
         }
 
         private async void DownloadButton2_Click(object sender, RoutedEventArgs e)
         {
+            string localFile2 = $"{Game}\\TextMap{OutputLanguage}.json";
             await DownloadFileAsync(DownloadURL2.Text, localFile2);
+            await CheckDataAsync();
         }
 
         private async Task DownloadFileAsync(string url, string fileName)
@@ -138,7 +263,7 @@ namespace GI_Subtitles
             Uri uri;
             if (!Uri.TryCreate(url, UriKind.Absolute, out uri))
             {
-                MessageBox.Show("无效的下载 URL");
+                System.Windows.MessageBox.Show("无效的下载 URL");
                 return;
             }
 
@@ -224,7 +349,7 @@ namespace GI_Subtitles
                     attempt++;
                     if (attempt >= MaxRetries)
                     {
-                        MessageBox.Show($"下载错误: {ex.Message}");
+                        System.Windows.MessageBox.Show($"下载错误: {ex.Message}");
                     }
                     else
                     {

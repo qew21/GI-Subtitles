@@ -29,6 +29,8 @@ using System.Configuration;
 using System.Media;
 using static log4net.Appender.RollingFileAppender;
 using System.Runtime.Remoting.Contexts;
+using System.Reflection;
+using System.Threading.Tasks;
 
 
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
@@ -77,8 +79,9 @@ namespace GI_Subtitles
         private readonly double Scale = GetDpiForSystem() / 96f;
         Dictionary<string, string> BitmapDict = new Dictionary<string, string>();
         string InputLanguage = ConfigurationManager.AppSettings["Input"];
+        string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         INotifyIcon notify;
-
+        Data data;
 
         public MainWindow()
         {
@@ -99,6 +102,15 @@ namespace GI_Subtitles
 
             notify = new INotifyIcon();
             notifyIcon = notify.InitializeNotifyIcon(Scale);
+            data = new Data(version);
+            if (!data.FileExists())
+            {
+                data.ShowDialog();
+            }
+            else
+            {
+                Task.Run(async () => await data.Load());
+            }
             LoadEngine();
             string testFile = "testOCR.png";
             if (File.Exists(testFile))
@@ -109,7 +121,7 @@ namespace GI_Subtitles
                 ocrText += '.';
                 Console.WriteLine($"Convert ocrResult: {ocrText}, cost {(DateTime.Now - dateTime).TotalMilliseconds}ms");
                 dateTime = DateTime.Now;
-                string res = VoiceContentHelper.FindClosestMatch(ocrText, notify.contentDict);
+                string res = VoiceContentHelper.FindClosestMatch(ocrText, data.contentDict);
                 Console.WriteLine($"Convert ocrResult: {res}, cost {(DateTime.Now - dateTime).TotalMilliseconds}ms");
             }
 
@@ -206,7 +218,7 @@ namespace GI_Subtitles
                         else
                         {
                             DateTime dateTime = DateTime.Now;
-                            res = VoiceContentHelper.FindClosestMatch(ocrText, notify.contentDict);
+                            res = VoiceContentHelper.FindClosestMatch(ocrText, data.contentDict);
                             Logger.Log.Debug($"Convert ocrResult: {res}");
                             resDict[ocrText] = res;
                             if (BitmapDict.Count > 10)
