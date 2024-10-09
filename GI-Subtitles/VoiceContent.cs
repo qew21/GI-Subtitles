@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Printing;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -29,6 +30,7 @@ public static class VoiceContentHelper
                 string pattern2 = @"</?unbreak>";
                 string temp = chsItem.Value;
                 temp = Regex.Replace(temp, pattern1, "");
+                enVoiceContent = ProcessGender(enVoiceContent);
                 enVoiceContent = enVoiceContent.Replace("{NICKNAME}", userName).Replace("#", "");
                 enVoiceContent = Regex.Replace(enVoiceContent, pattern1, "");
                 temp = Regex.Replace(temp, pattern2, "");
@@ -112,5 +114,30 @@ public static class VoiceContentHelper
             curr = temp;
         }
         return prev[b.Length];
+    }
+
+    static string ProcessGender(string input)
+    {
+        string pattern = @"\{([FM]#.*?)}";
+        Regex regex = new Regex(pattern);
+
+        var matches = regex.Matches(input);
+        if (matches.Count >= 1)
+        {
+            foreach (Match match in matches)
+            {
+                if (match.Groups[1].Value.StartsWith("F#"))
+                {
+                    string replacement = match.Groups[1].Value.Substring(2);
+                    input = input.Replace(match.Value, replacement);
+                }
+                else
+                {
+                    input = input.Replace(match.Value, "");
+                }
+            }
+        }
+
+        return input;
     }
 }
