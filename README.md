@@ -23,6 +23,16 @@ https://www.bilibili.com/video/BV1qxtjeME7e/
 
 ## 更新
 
+**1.2.1**  
+1. 需要根据角色性别选择文本时，使用女主内容，例如
+```
+#{M#The key is getting the Wayob to somehow acknowledge the Traveler's existence and record his heroic deeds.}{F#The key is getting the Wayob to somehow acknowledge the Traveler's existence and record her heroic deeds.}
+```
+展示成
+```
+The key is getting the Wayob to somehow acknowledge the Traveler's existence and record her heroic deeds.
+```
+
 **1.2.0**  
 1. 启动后不再自动识别，可以通过快捷键`Ctrl+Shift+S`启动和暂停识别
 2. 在游戏界面上使用快捷键`Ctrl+Shift+R`可以选择识别区域，通常框出第一行文本的区域
