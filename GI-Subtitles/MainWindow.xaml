@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GI_Subtitles"
         mc:Ignorable="d"
-        WindowStyle="None" Height="20"  ShowInTaskbar="False" Topmost="True" Background="Transparent" AllowsTransparency="True" MouseDown="Window_MouseDown">
+        WindowStyle="None" Height="20"  ShowInTaskbar="False" Topmost="True" Background="Transparent" AllowsTransparency="True" MouseDown="Window_MouseDown" Cursor="Hand">
     <Grid>
         <TextBlock x:Name="SubtitleText" TextWrapping="Wrap" Foreground="White" TextAlignment="Center" FontWeight="Bold"/>
     </Grid>

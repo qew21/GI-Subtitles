@@ -60,6 +60,7 @@ namespace GI_Subtitles
         readonly string outpath = Path.Combine(Environment.CurrentDirectory, "out");
         readonly bool debug = ConfigurationManager.AppSettings["Debug"] == "1";
         readonly bool mtuliline = ConfigurationManager.AppSettings["Multiline"] == "1";
+        int Pad = Convert.ToInt16(ConfigurationManager.AppSettings["Pad"]);
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern int SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int x, int y, int Width, int Height, int flags);
         [DllImport("User32.dll")]
@@ -116,7 +117,9 @@ namespace GI_Subtitles
             if (File.Exists(testFile))
             {
                 DateTime dateTime = DateTime.Now;
-                OCRResult ocrResult = engine.DetectText(testFile);
+                Bitmap target = (Bitmap)Bitmap.FromFile(testFile);
+                var enhanced = ImageProcessor.EnhanceTextInImage(target);
+                OCRResult ocrResult = engine.DetectText(enhanced);
                 ocrText = ocrResult.Text;
                 ocrText += '.';
                 Console.WriteLine($"Convert ocrResult: {ocrText}, cost {(DateTime.Now - dateTime).TotalMilliseconds}ms");
@@ -137,6 +140,7 @@ namespace GI_Subtitles
             this.Width = workingArea.Width;
             this.Top = workingArea.Bottom / Scale - this.Height;
             this.Left = workingArea.Left / Scale;
+            this.LocationChanged += MainWindow_LocationChanged;
         }
 
         public void GetOCR(object sender, EventArgs e)
@@ -180,9 +184,25 @@ namespace GI_Subtitles
                                 }
                             }
                         }
-                        this.Left = workingArea.Left;
-                        this.Top = workingArea.Bottom / Scale - 20;
-                        this.Width = workingArea.Width / Scale;
+                        double left = workingArea.Left;
+                        double top = Convert.ToInt16(notify.Region[1]) / Scale + Pad;
+
+                        if (top > workingArea.Bottom / Scale - 20)
+                        {
+                            top = workingArea.Bottom / Scale - 20;
+                        }
+                        if (top < workingArea.Top / Scale + 20)
+                        {
+                            top = workingArea.Top / Scale + 20;
+                        }
+                        this.Top = top;
+                        double width = Convert.ToInt16(notify.Region[2]) / Scale + 200;
+                        if (width > workingArea.Width / Scale)
+                        {
+                            width = workingArea.Width / Scale;
+                        }
+                        this.Left = left + (workingArea.Width / Scale - width) / 2;
+                        this.Width = width;
                         this.Height = 100;
                         BitmapDict.Add(bitStr, ocrText);
                         if (BitmapDict.Count > 10)
@@ -282,6 +302,14 @@ namespace GI_Subtitles
             IntPtr handle = new WindowInteropHelper(this).Handle;
             UnregisterHotKey(handle, HOTKEY_ID_1);
             UnregisterHotKey(handle, HOTKEY_ID_2);
+        }
+
+        private void MainWindow_LocationChanged(object sender, EventArgs e)
+        {
+            Pad = Convert.ToInt16(this.Top - Convert.ToInt16(notify.Region[1]) / Scale);
+            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            config.AppSettings.Settings["Pad"].Value = Pad.ToString();
+            config.Save(ConfigurationSaveMode.Modified);
         }
 
 
