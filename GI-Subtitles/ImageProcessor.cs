@@ -15,13 +15,9 @@ namespace GI_Subtitles
             // 转换为灰度图像
             Image<Gray, byte> gray = img.Convert<Gray, byte>();
 
-            // 调整对比度（可选）
-            double alpha = 1.5; // 对比度控制（1.0 - 3.0）
-            gray._GammaCorrect(alpha);
-
             // 应用二值化
-            double thresholdValue = 128; // 阈值（0 - 255）
-            double maxValue = 255;       // 最大值
+            double thresholdValue = 240; // 阈值（0 - 255）
+            double maxValue = 245;       // 最大值
             gray = gray.ThresholdBinary(new Gray(thresholdValue), new Gray(maxValue));
 
             // 将处理后的Emgu CV Image转换回Bitmap
