@@ -34,12 +34,12 @@ namespace GI_Subtitles
             contextMenuStrip = new ContextMenuStrip();
 
             fontSizeSelector = new ToolStripMenuItem("字号选择");
-            fontSizeSelector.DropDownItems.Add(CreateSizeItem("12"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("14"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("16"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("18"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("20"));
             fontSizeSelector.DropDownItems.Add(CreateSizeItem("22"));
+            fontSizeSelector.DropDownItems.Add(CreateSizeItem("24"));
 
             ToolStripMenuItem dataItem = new ToolStripMenuItem("语言包管理");
             ToolStripMenuItem aboutItem = new ToolStripMenuItem("帮助");
