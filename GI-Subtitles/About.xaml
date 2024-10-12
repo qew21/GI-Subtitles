@@ -5,9 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GI_Subtitles"
         mc:Ignorable="d"
-        Title="关于程序" Height="450" Width="430" Icon="Resources/mask.ico" Topmost="True">
+        Title="帮助" Height="450" Width="430" Icon="Resources/mask.ico" Topmost="True">
     <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -20,7 +22,16 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Center">
-            <Image Width="360" Height="360" Source="Resources/qrcode.jpg"></Image>
+            <TextBlock Text="使用说明" VerticalAlignment="Center" FontWeight="Bold"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Grid.Row="3" HorizontalAlignment="Center">
+            <TextBlock Text="1.可以通过快捷键Ctrl+Shift+S启动和暂停识别，使用快捷键Ctrl+Shift+R可以画框选择识别区域，使用快捷键Ctrl+Shift+H可以隐藏和关闭字幕" Height="55" TextWrapping="Wrap" Width="367" TextAlignment="Left" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Grid.Row="4" HorizontalAlignment="Center">
+            <TextBlock Text="2.鼠标在字幕上展示为手形时可以拖动和记录字幕位置" Height="35" TextWrapping="Wrap" Width="367" TextAlignment="Left" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Grid.Row="5" HorizontalAlignment="Center">
+            <Image Width="281" Height="245" Source="Resources/qrcode.jpg"></Image>
         </StackPanel>
     </Grid>
 </Window>

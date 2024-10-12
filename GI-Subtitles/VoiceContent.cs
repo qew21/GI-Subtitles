@@ -33,7 +33,7 @@ public static class VoiceContentHelper
                 enVoiceContent = ProcessGender(enVoiceContent);
                 enVoiceContent = enVoiceContent.Replace("{NICKNAME}", userName).Replace("#", "");
                 enVoiceContent = Regex.Replace(enVoiceContent, pattern1, "");
-                temp = Regex.Replace(temp, pattern2, "");
+                temp = Regex.Replace(temp, pattern2, "").Replace("#", "");
                 enVoiceContent = Regex.Replace(enVoiceContent, pattern2, "");
                 voiceContentDict[temp] = enVoiceContent;
             }
@@ -45,7 +45,7 @@ public static class VoiceContentHelper
     }
 
 
-    public static string FindClosestMatch(string input, Dictionary<string, string> voiceContentDict)
+    public static string FindClosestMatch(string input, Dictionary<string, string> voiceContentDict, out string Key)
     {
         string closestKey = null;
         int closestDistance = int.MaxValue;
@@ -77,10 +77,12 @@ public static class VoiceContentHelper
         //Console.WriteLine($"closestKey {closestKey} length {length} closestDistance {closestDistance}");
         if (closestDistance < length / 1.5)
         {
+            Key = closestKey;
             return voiceContentDict[closestKey];
         }
         else
         {
+            Key = "";
             return "";
         }
 
@@ -140,4 +142,23 @@ public static class VoiceContentHelper
 
         return input;
     }
+
+    public static Dictionary<string, string> LoadAudioMap(string game)
+    {
+        var data = new Dictionary<string, string>();
+        foreach (var version in Directory.GetDirectories(game))
+        {
+            Console.WriteLine("version:" + version);
+            var jsonPath = Path.Combine(version, "AudioMap.json");
+            if (File.Exists(jsonPath))
+            {
+                foreach (var pair in JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(jsonPath)))
+                {
+                    data[pair.Key] = pair.Value;
+                }
+            }
+        }
+        return data;
+    }
+
 }

@@ -31,6 +31,8 @@ using static log4net.Appender.RollingFileAppender;
 using System.Runtime.Remoting.Contexts;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
@@ -73,16 +75,24 @@ namespace GI_Subtitles
 
         private const int HOTKEY_ID_1 = 9000; // 自定义热键ID
         private const int HOTKEY_ID_2 = 9001; // 自定义热键ID
+        private const int HOTKEY_ID_3 = 9002; // 自定义热键ID
         private const uint MOD_CTRL = 0x0002; // Ctrl键
         private const uint MOD_SHIFT = 0x0004; // Shift键
         private const uint VK_S = 0x53; // S键的虚拟键码
         private const uint VK_R = 0x52; // R键的虚拟键码
+        private const uint VK_H = 0x48; // H键的虚拟键码
         private readonly double Scale = GetDpiForSystem() / 96f;
         Dictionary<string, string> BitmapDict = new Dictionary<string, string>();
+        List<string> AudioList = new List<string>();
         string InputLanguage = ConfigurationManager.AppSettings["Input"];
+        string Game = ConfigurationManager.AppSettings["Game"];
         string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         INotifyIcon notify;
         Data data;
+        Dictionary<string, string> VoiceMap = new Dictionary<string, string>();
+        SoundPlayer player = new SoundPlayer();
+        bool ShowText = true;
+        bool ChooseRegion = false;
 
         public MainWindow()
         {
@@ -96,6 +106,7 @@ namespace GI_Subtitles
             IntPtr handle = new WindowInteropHelper(this).Handle;
             RegisterHotKey(handle, HOTKEY_ID_1, MOD_CTRL | MOD_SHIFT, VK_S);
             RegisterHotKey(handle, HOTKEY_ID_2, MOD_CTRL | MOD_SHIFT, VK_R);
+            RegisterHotKey(handle, HOTKEY_ID_3, MOD_CTRL | MOD_SHIFT, VK_H);
 
             // 监听窗口消息
             HwndSource source = HwndSource.FromHwnd(handle);
@@ -111,11 +122,17 @@ namespace GI_Subtitles
             else
             {
                 Task.Run(async () => await data.Load());
+                VoiceMap = VoiceContentHelper.LoadAudioMap(Game);
             }
             LoadEngine();
             string testFile = "testOCR.png";
             if (File.Exists(testFile))
             {
+                while (data.contentDict.Count < 10)
+                {
+                    Thread.Sleep(1000);
+                    Console.WriteLine("Sleeping ...");
+                }
                 DateTime dateTime = DateTime.Now;
                 Bitmap target = (Bitmap)Bitmap.FromFile(testFile);
                 var enhanced = ImageProcessor.EnhanceTextInImage(target);
@@ -124,7 +141,7 @@ namespace GI_Subtitles
                 ocrText += '.';
                 Console.WriteLine($"Convert ocrResult: {ocrText}, cost {(DateTime.Now - dateTime).TotalMilliseconds}ms");
                 dateTime = DateTime.Now;
-                string res = VoiceContentHelper.FindClosestMatch(ocrText, data.contentDict);
+                string res = VoiceContentHelper.FindClosestMatch(ocrText, data.contentDict, out string key);
                 Console.WriteLine($"Convert ocrResult: {res}, cost {(DateTime.Now - dateTime).TotalMilliseconds}ms");
             }
 
@@ -229,19 +246,22 @@ namespace GI_Subtitles
                 try
                 {
                     string res = "";
+                    string key = "";
                     if (ocrText.Length > 1)
                     {
                         if (resDict.ContainsKey(ocrText))
                         {
                             res = resDict[ocrText];
+                            key = resDict[res];
                         }
                         else
                         {
                             DateTime dateTime = DateTime.Now;
-                            res = VoiceContentHelper.FindClosestMatch(ocrText, data.contentDict);
+                            res = VoiceContentHelper.FindClosestMatch(ocrText, data.contentDict, out key);
                             Logger.Log.Debug($"Convert ocrResult: {res}");
                             resDict[ocrText] = res;
-                            if (BitmapDict.Count > 10)
+                            resDict[res] = key;
+                            if (BitmapDict.Count > 20)
                             {
                                 BitmapDict.Remove(BitmapDict.ElementAt(0).Key);
                             }
@@ -252,6 +272,27 @@ namespace GI_Subtitles
                         lastRes = res;
                         SubtitleText.Text = res;
                         SubtitleText.FontSize = Convert.ToInt16(ConfigurationManager.AppSettings["Size"]);
+                        if (!AudioList.Contains(key))
+                        {
+                            string text = key.Replace("{REALNAME[ID(2)|SHOWHOST(true)]}", "小龙").Replace("{NICKNAME}", "旅行者");
+                            text = Regex.Replace(text, @"<color=.*?>(.*?)</color>", "$1");
+                            if (text.StartsWith("#"))
+                            {
+                                text = text.Substring(1);
+                            }
+                            if (VoiceMap.ContainsKey(text))
+                            {
+                                var audioPath = VoiceMap[text];
+                                PlayAudio(audioPath);
+                            }
+                            else
+                            {
+                                Logger.Log.Debug($"text not found {text}");
+                            }
+
+                            AudioList.Add(key);
+                        }
+
                     }
                 }
                 catch (Exception ex)
@@ -261,6 +302,7 @@ namespace GI_Subtitles
                 Interlocked.Exchange(ref UI_TIMER, 0);
             }
         }
+
 
         public static string Bitmap2String(Bitmap bmp)
         {
@@ -302,6 +344,7 @@ namespace GI_Subtitles
             IntPtr handle = new WindowInteropHelper(this).Handle;
             UnregisterHotKey(handle, HOTKEY_ID_1);
             UnregisterHotKey(handle, HOTKEY_ID_2);
+            UnregisterHotKey(handle, HOTKEY_ID_3);
         }
 
         private void MainWindow_LocationChanged(object sender, EventArgs e)
@@ -351,7 +394,25 @@ namespace GI_Subtitles
                 }
                 else if (wParam.ToInt32() == HOTKEY_ID_2)
                 {
-                    notify.ChooseRegion();
+                    if (!ChooseRegion)
+                    {
+                        ChooseRegion = true;
+                        notify.ChooseRegion();
+                        ChooseRegion = false;
+                    }
+                }
+                else if (wParam.ToInt32() == HOTKEY_ID_3)
+                {
+                    ShowText = !ShowText;
+                    SubtitleText.Visibility = ShowText ? Visibility.Visible : Visibility.Collapsed;
+                    if (ShowText)
+                    {
+                        SystemSounds.Hand.Play();
+                    }
+                    else
+                    {
+                        SystemSounds.Exclamation.Play();
+                    }
                 }
             }
             return IntPtr.Zero;
@@ -391,6 +452,17 @@ namespace GI_Subtitles
 
             //初始化OCR引擎
             engine = new PaddleOCREngine(config, oCRParameter);
+        }
+
+        public void PlayAudio(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine("File not found.");
+                return;
+            }
+            player.SoundLocation = filePath;
+            player.Play();
         }
     }
 }
