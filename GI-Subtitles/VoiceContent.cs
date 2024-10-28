@@ -10,17 +10,17 @@ using Newtonsoft.Json;
 
 public static class VoiceContentHelper
 {
-    public static Dictionary<string, string> CreateVoiceContentDictionary(string chsFilePath, string enFilePath, string userName)
+    public static Dictionary<string, string> CreateVoiceContentDictionary(string inputFilePath, string outputFilePath, string userName)
     {
-        var jsonFilePath = Path.Combine(Path.GetDirectoryName(chsFilePath),
-            $"{Path.GetFileNameWithoutExtension(chsFilePath)}_{Path.GetFileNameWithoutExtension(enFilePath)}.json");
+        var jsonFilePath = Path.Combine(Path.GetDirectoryName(inputFilePath),
+            $"{Path.GetFileNameWithoutExtension(inputFilePath)}_{Path.GetFileNameWithoutExtension(outputFilePath)}.json");
         if (File.Exists(jsonFilePath))
         {
             return JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(jsonFilePath));
         }
 
-        var chsData = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(chsFilePath));
-        var enData = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(enFilePath));
+        var chsData = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(inputFilePath));
+        var enData = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(outputFilePath));
         var voiceContentDict = new Dictionary<string, string>();
         foreach (var chsItem in chsData)
         {

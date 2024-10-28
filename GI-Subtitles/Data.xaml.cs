@@ -21,6 +21,7 @@ using Newtonsoft.Json;
 using System.Configuration;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using System.Text.RegularExpressions;
 
 namespace GI_Subtitles
 {
@@ -92,7 +93,7 @@ namespace GI_Subtitles
                     config.AppSettings.Settings["Game"].Value = newValue;
                     config.Save(ConfigurationSaveMode.Modified);
                     ConfigurationManager.RefreshSection("appSettings");
-                    await CheckDataAsync();
+                    await CheckDataAsync(true);
                 }
             }
         }
@@ -123,7 +124,7 @@ namespace GI_Subtitles
                     config.AppSettings.Settings["Input"].Value = InputLanguage;
                     config.Save(ConfigurationSaveMode.Modified);
                     ConfigurationManager.RefreshSection("appSettings");
-                    await CheckDataAsync();
+                    await CheckDataAsync(true);
                 }
             }
         }
@@ -150,7 +151,7 @@ namespace GI_Subtitles
                     config.AppSettings.Settings["Output"].Value = OutputLanguage;
                     config.Save(ConfigurationSaveMode.Modified);
                     ConfigurationManager.RefreshSection("appSettings");
-                    await CheckDataAsync();
+                    await CheckDataAsync(true);
                 }
             }
         }
@@ -160,7 +161,7 @@ namespace GI_Subtitles
                               File.Exists($"{Game}\\TextMap{OutputLanguage}.json");
         }
 
-        public async Task CheckDataAsync()
+        public async Task CheckDataAsync(bool renew = false)
         {
             if (OutputLanguage == "CHS")
             {
@@ -168,38 +169,42 @@ namespace GI_Subtitles
             }
             if (FileExists())
             {
+                string inputFilePath = $"{Game}\\TextMap{InputLanguage}.json";
+                string outputFilePath = $"{Game}\\TextMap{OutputLanguage}.json";
+                var jsonFilePath = Path.Combine(Path.GetDirectoryName(inputFilePath),
+                    $"{Path.GetFileNameWithoutExtension(inputFilePath)}_{Path.GetFileNameWithoutExtension(outputFilePath)}.json");
+                if (renew && File.Exists(jsonFilePath))
+                {
+                    File.Delete(jsonFilePath);
+                }
                 contentDict = await Task.Run(() =>
-                    VoiceContentHelper.CreateVoiceContentDictionary(
-                        $"{Game}\\TextMap{InputLanguage}.json",
-                        $"{Game}\\TextMap{OutputLanguage}.json",
-                        userName)
-                    );
+                    VoiceContentHelper.CreateVoiceContentDictionary(inputFilePath, outputFilePath, userName));
             }
             DisplayLocalFileDates();
         }
 
         private void DisplayLocalFileDates()
         {
-            string localFile1 = $"{Game}\\TextMap{InputLanguage}.json";
-            string localFile2 = $"{Game}\\TextMap{OutputLanguage}.json";
-            if (File.Exists(localFile1))
+            string inputFilePath = $"{Game}\\TextMap{InputLanguage}.json";
+            string outputFilePath = $"{Game}\\TextMap{OutputLanguage}.json";
+            if (File.Exists(inputFilePath))
             {
-                DateTime modDate1 = File.GetLastWriteTime(localFile1);
-                LocalFile1Date.Text = $"{localFile1}修改日期 {modDate1}";
+                DateTime modDate1 = File.GetLastWriteTime(inputFilePath);
+                inputFilePathDate.Text = $"{inputFilePath}修改日期 {modDate1}";
             }
             else
             {
-                LocalFile1Date.Text = $"{localFile1}不存在";
+                inputFilePathDate.Text = $"{inputFilePath}不存在";
             }
 
-            if (File.Exists(localFile2))
+            if (File.Exists(outputFilePath))
             {
-                DateTime modDate2 = File.GetLastWriteTime(localFile2);
-                LocalFile2Date.Text = $"{localFile2}修改日期 {modDate2}";
+                DateTime modDate2 = File.GetLastWriteTime(outputFilePath);
+                outputFilePathDate.Text = $"{outputFilePath}修改日期 {modDate2}";
             }
             else
             {
-                LocalFile2Date.Text = $"{localFile2}不存在";
+                outputFilePathDate.Text = $"{outputFilePath}不存在";
             }
         }
 
@@ -247,15 +252,15 @@ namespace GI_Subtitles
 
         private async void DownloadButton1_Click(object sender, RoutedEventArgs e)
         {
-            string localFile1 = $"{Game}\\TextMap{InputLanguage}.json";
-            await DownloadFileAsync(DownloadURL1.Text, localFile1);
+            string inputFilePath = $"{Game}\\TextMap{InputLanguage}.json";
+            await DownloadFileAsync(DownloadURL1.Text, inputFilePath);
         }
 
         private async void DownloadButton2_Click(object sender, RoutedEventArgs e)
         {
-            string localFile2 = $"{Game}\\TextMap{OutputLanguage}.json";
-            await DownloadFileAsync(DownloadURL2.Text, localFile2);
-            await CheckDataAsync();
+            string outputFilePath = $"{Game}\\TextMap{OutputLanguage}.json";
+            await DownloadFileAsync(DownloadURL2.Text, outputFilePath);
+            await CheckDataAsync(true);
         }
 
         private async Task DownloadFileAsync(string url, string fileName)

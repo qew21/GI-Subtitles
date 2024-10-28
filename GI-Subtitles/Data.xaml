@@ -58,12 +58,12 @@
             <GroupBox Header="本地文件信息" Grid.Row="0">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="本地文件 1：" VerticalAlignment="Center"/>
-                        <TextBlock Name="LocalFile1Date" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="识别语言：" VerticalAlignment="Center"/>
+                        <TextBlock Name="inputFilePathDate" Margin="5,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                        <TextBlock Text="本地文件 2：" VerticalAlignment="Center"/>
-                        <TextBlock Name="LocalFile2Date" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="输出语言：" VerticalAlignment="Center"/>
+                        <TextBlock Name="outputFilePathDate" Margin="5,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>
