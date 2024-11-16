@@ -33,6 +33,8 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using NAudio.Wave;
+using System.Net;
 
 
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
@@ -62,6 +64,7 @@ namespace GI_Subtitles
         readonly string outpath = Path.Combine(Environment.CurrentDirectory, "out");
         readonly bool debug = ConfigurationManager.AppSettings["Debug"] == "1";
         readonly bool mtuliline = ConfigurationManager.AppSettings["Multiline"] == "1";
+        readonly string server = ConfigurationManager.AppSettings["Server"];
         int Pad = Convert.ToInt16(ConfigurationManager.AppSettings["Pad"]);
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern int SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int x, int y, int Width, int Height, int flags);
@@ -93,6 +96,11 @@ namespace GI_Subtitles
         SoundPlayer player = new SoundPlayer();
         bool ShowText = true;
         bool ChooseRegion = false;
+        private IWavePlayer waveOut;
+        private MediaFoundationReader mediaReader;
+        private string tempFilePath;
+
+
 
         public MainWindow()
         {
@@ -280,10 +288,19 @@ namespace GI_Subtitles
                             {
                                 text = text.Substring(1);
                             }
+
                             if (VoiceMap.ContainsKey(text))
                             {
                                 var audioPath = VoiceMap[text];
-                                PlayAudio(audioPath);
+                                if (string.IsNullOrEmpty(server))
+                                {
+                                    PlayAudio(audioPath);
+                                }
+                                else
+                                {
+                                    PlayAudioFromUrl(audioPath.Replace("Genshin/", server));
+                                }
+
                             }
                             else
                             {
@@ -463,6 +480,47 @@ namespace GI_Subtitles
             }
             player.SoundLocation = filePath;
             player.Play();
+        }
+
+        public void PlayAudioFromUrl(string url)
+        {
+            Console.WriteLine(url);
+            try
+            {
+                if (waveOut == null)
+                {
+                    waveOut = new WaveOutEvent();
+                }
+
+                // 下载文件到临时文件
+                using (var webClient = new WebClient())
+                {
+                    string tempFile = Path.GetTempFileName();
+                    Console.WriteLine($"{tempFile}, {tempFilePath}");
+                    if (tempFile != tempFilePath)
+                    {
+                        webClient.DownloadFile(url, tempFile);
+                        StopAudio();
+                        tempFilePath = tempFile;
+
+                        // 使用 MediaFoundationReader 从文件读取
+                        mediaReader = new MediaFoundationReader(tempFile);
+                        waveOut.Init(mediaReader);
+                        waveOut.Play();
+                        //StopAudio();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+
+        public void StopAudio()
+        {
+            waveOut?.Stop();
+            mediaReader?.Dispose();
         }
     }
 }
