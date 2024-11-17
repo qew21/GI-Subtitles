@@ -65,6 +65,7 @@ namespace GI_Subtitles
         readonly bool debug = ConfigurationManager.AppSettings["Debug"] == "1";
         readonly bool mtuliline = ConfigurationManager.AppSettings["Multiline"] == "1";
         readonly string server = ConfigurationManager.AppSettings["Server"];
+        readonly string token = ConfigurationManager.AppSettings["Token"];
         int Pad = Convert.ToInt16(ConfigurationManager.AppSettings["Pad"]);
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern int SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int x, int y, int Width, int Height, int flags);
@@ -130,7 +131,7 @@ namespace GI_Subtitles
             else
             {
                 Task.Run(async () => await data.Load());
-                VoiceMap = VoiceContentHelper.LoadAudioMap(Game);
+                VoiceMap = VoiceContentHelper.LoadAudioMap(server, Game);
             }
             LoadEngine();
             string testFile = "testOCR.png";
@@ -288,7 +289,6 @@ namespace GI_Subtitles
                             {
                                 text = text.Substring(1);
                             }
-
                             if (VoiceMap.ContainsKey(text))
                             {
                                 var audioPath = VoiceMap[text];
@@ -298,13 +298,9 @@ namespace GI_Subtitles
                                 }
                                 else
                                 {
-                                    PlayAudioFromUrl(audioPath.Replace("Genshin/", server));
+                                    PlayAudioFromUrl($"{server}?md5={audioPath}&token={token}");
                                 }
 
-                            }
-                            else
-                            {
-                                Logger.Log.Debug($"text not found {text}");
                             }
 
                             AudioList.Add(key);

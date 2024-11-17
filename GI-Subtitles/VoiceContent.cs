@@ -30,10 +30,12 @@ public static class VoiceContentHelper
                 string pattern2 = @"</?unbreak>";
                 string temp = chsItem.Value;
                 temp = Regex.Replace(temp, pattern1, "");
+                temp = Regex.Replace(temp, @"<color=.*?>(.*?)</color>", "$1");
                 enVoiceContent = ProcessGender(enVoiceContent);
+                enVoiceContent = Regex.Replace(enVoiceContent, @"<color=.*?>(.*?)</color>", "$1");
                 enVoiceContent = enVoiceContent.Replace("{NICKNAME}", userName).Replace("#", "");
                 enVoiceContent = Regex.Replace(enVoiceContent, pattern1, "");
-                temp = Regex.Replace(temp, pattern2, "").Replace("#", "");
+                temp = Regex.Replace(temp, pattern2, "").Replace("#", "").Replace("\\n", "");
                 enVoiceContent = Regex.Replace(enVoiceContent, pattern2, "");
                 voiceContentDict[temp] = enVoiceContent;
             }
@@ -143,18 +145,31 @@ public static class VoiceContentHelper
         return input;
     }
 
-    public static Dictionary<string, string> LoadAudioMap(string game)
+    public static Dictionary<string, string> LoadAudioMap(string server, string game)
     {
         var data = new Dictionary<string, string>();
         foreach (var version in Directory.GetDirectories(game))
         {
-            Console.WriteLine("version:" + version);
+            var serverPath = Path.Combine(version, "ServerMap.json");
             var jsonPath = Path.Combine(version, "AudioMap.json");
-            if (File.Exists(jsonPath))
+            if (string.IsNullOrEmpty(server))
             {
-                foreach (var pair in JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(jsonPath)))
+                if (File.Exists(jsonPath))
                 {
-                    data[pair.Key] = pair.Value;
+                    foreach (var pair in JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(jsonPath)))
+                    {
+                        data[pair.Key] = pair.Value;
+                    }
+                }
+            }
+            else
+            {
+                if (File.Exists(serverPath))
+                {
+                    foreach (var pair in JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(serverPath)))
+                    {
+                        data[pair.Key] = pair.Value;
+                    }
                 }
             }
         }
