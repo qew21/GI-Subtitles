@@ -133,6 +133,11 @@ namespace GI_Subtitles
                 Task.Run(async () => await data.Load());
                 VoiceMap = VoiceContentHelper.LoadAudioMap(server, Game);
             }
+            if (notify.Region[1] == "0")
+            {
+                About about = new About(version);
+                about.Show();
+            }
             LoadEngine();
             string testFile = "testOCR.png";
             if (File.Exists(testFile))
@@ -213,7 +218,7 @@ namespace GI_Subtitles
                         double left = workingArea.Left;
                         double top = Convert.ToInt16(notify.Region[1]) / Scale + Pad;
 
-                        if (top > workingArea.Bottom / Scale - 20)
+                        if (top > workingArea.Bottom / Scale - 20 || notify.Region[1] == "0")
                         {
                             top = workingArea.Bottom / Scale - 20;
                         }
@@ -283,12 +288,7 @@ namespace GI_Subtitles
                         SubtitleText.FontSize = Convert.ToInt16(ConfigurationManager.AppSettings["Size"]);
                         if (!AudioList.Contains(key))
                         {
-                            string text = key.Replace("{REALNAME[ID(2)|SHOWHOST(true)]}", "小龙").Replace("{NICKNAME}", "旅行者");
-                            text = Regex.Replace(text, @"<color=.*?>(.*?)</color>", "$1");
-                            if (text.StartsWith("#"))
-                            {
-                                text = text.Substring(1);
-                            }
+                            string text = key;
                             if (VoiceMap.ContainsKey(text))
                             {
                                 var audioPath = VoiceMap[text];
@@ -300,7 +300,6 @@ namespace GI_Subtitles
                                 {
                                     PlayAudioFromUrl($"{server}?md5={audioPath}&token={token}");
                                 }
-
                             }
 
                             AudioList.Add(key);
@@ -471,7 +470,7 @@ namespace GI_Subtitles
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine("File not found.");
+                Console.WriteLine($"File {filePath} not found.");
                 return;
             }
             player.SoundLocation = filePath;
