@@ -38,6 +38,13 @@ namespace GI_Subtitles
         private const int MaxRetries = 1; // 最大重试次数
         private static readonly HttpClient client = new HttpClient();
         public Dictionary<string, string> contentDict = new Dictionary<string, string>();
+        Dictionary<string, string> OutputLanguages = new Dictionary<string, string>() { { "简体中文", "CHS" }, { "English", "EN" }, { "日本語", "JP" }, { "繁體中文", "CHT" }, { "Deutsch", "DE" }, { "Español", "ES" }, { "Français", "FR" }, { "Bahasa Indonesia", "ID" }, { "한국어", "KR" }, { "Português", "PT" }, { "Русский", "RU" }, { "ไทย", "TH" }, { "Tiếng Việt", "VI" } };
+        Dictionary<string, string> InputLanguages = new Dictionary<string, string>()
+            {
+                { "简体中文", "CHS"},
+                { "English", "EN"},
+                { "日本語", "JP"}
+            };
 
         Stopwatch sw = new Stopwatch();
 
@@ -48,6 +55,18 @@ namespace GI_Subtitles
             GameSelector.SelectionChanged += OnGameSelectorChanged;
             InputSelector.SelectionChanged += OnInputSelectorChanged;
             OutputSelector.SelectionChanged += OnOutputSelectorChanged;
+            Dictionary<string, string> InputNames = InputLanguages.ToDictionary(x => x.Value, x => x.Key);
+            Dictionary<string, string> OutputNames = OutputLanguages.ToDictionary(x => x.Value, x => x.Key);
+            var item = InputSelector.Items.Cast<ComboBoxItem>().FirstOrDefault(i => i.Content.ToString() == InputNames[InputLanguage]);
+            if (item != null)
+            {
+                InputSelector.SelectedItem = item;
+            }
+            item = OutputSelector.Items.Cast<ComboBoxItem>().FirstOrDefault(i => i.Content.ToString() == OutputNames[OutputLanguage]);
+            if (item != null)
+            {
+                OutputSelector.SelectedItem = item;
+            }
             DownloadURL1.Text = $"https://gitlab.com/Dimbreath/AnimeGameData/-/raw/master/TextMap/TextMap{InputLanguage}.json?inline=false";
             DownloadURL2.Text = $"https://gitlab.com/Dimbreath/AnimeGameData/-/raw/master/TextMap/TextMap{OutputLanguage}.json?inline=false";
             if (Game == "StarRail")
@@ -100,12 +119,6 @@ namespace GI_Subtitles
 
         private async void OnInputSelectorChanged(object sender, SelectionChangedEventArgs e)
         {
-            Dictionary<string, string> InputLanguages = new Dictionary<string, string>()
-            {
-                { "简体中文", "CHS"},
-                { "English", "EN"},
-                { "日本語", "JP"}
-            };
             System.Windows.Controls.ComboBox comboBox = sender as System.Windows.Controls.ComboBox;
             if (comboBox == null)
             {
@@ -131,7 +144,7 @@ namespace GI_Subtitles
 
         private async void OnOutputSelectorChanged(object sender, SelectionChangedEventArgs e)
         {
-            Dictionary<string, string> OutputLanguages = new Dictionary<string, string>() { { "简体中文", "CHS" }, { "English", "EN" }, { "日本語", "JP" }, { "繁體中文", "CHT" }, { "Deutsch", "DE" }, { "Español", "ES" }, { "Français", "FR" }, { "Bahasa Indonesia", "ID" }, { "한국어", "KR" }, { "Português", "PT" }, { "Русский", "RU" }, { "ไทย", "TH" }, { "Tiếng Việt", "VI" } };
+
             System.Windows.Controls.ComboBox comboBox = sender as System.Windows.Controls.ComboBox;
             if (comboBox == null)
             {
