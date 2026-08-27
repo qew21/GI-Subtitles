@@ -3,6 +3,7 @@ using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using PaddleOCRSharp;
 using System;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -75,12 +76,18 @@ namespace GI_Subtitles.Views
         private static int UI_TIMER = 0;
         private Mat _lastBinaryFrame = null;       // last frame for stability check
         private Mat _lastOcrBinaryFrame = null;    // frame at last OCR for subtitle-change check
-        private bool _isOcrRunning = false;
+        private volatile bool _isOcrRunning = false;
         private readonly double ChangeThreshold = Math.Max(0, Math.Min(1, Config.Get<double>("OCRThreshold", 0.01)));
         private DateTime _lastOcrTime = DateTime.MinValue;
         private readonly TimeSpan MinOcrInterval = TimeSpan.FromMilliseconds(
             Math.Max(1, Config.Get<int>("OCRInterval", 400)));
-        string ocrText = "";
+        private readonly int _realtimeAnalysisMaxSide = Math.Max(
+            960,
+            Config.Get<int>("RealtimeAnalysisMaxSide", 1920));
+        private readonly bool _performanceDiagnostics = Config.Get("PerformanceDiagnostics", false);
+        private const int DarkScreenAnalysisMaxSide = 960;
+        private const int DialogueOptionAnalysisMaxSide = 1920;
+        private volatile string ocrText = "";
         private NotifyIcon notifyIcon;
         string lastHeader = null;
         string lastContent = null;
@@ -96,6 +103,30 @@ namespace GI_Subtitles.Views
         public static extern int SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int x, int y, int Width, int Height, int flags);
         [DllImport("User32.dll")]
         private static extern int GetDpiForSystem();
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr GetDC(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool StretchBlt(
+            IntPtr hdcDest,
+            int xDest,
+            int yDest,
+            int widthDest,
+            int heightDest,
+            IntPtr hdcSource,
+            int xSource,
+            int ySource,
+            int widthSource,
+            int heightSource,
+            int rasterOperation);
+        [DllImport("gdi32.dll")]
+        private static extern int SetStretchBltMode(IntPtr hdc, int stretchMode);
+        [DllImport("gdi32.dll")]
+        private static extern bool SetBrushOrgEx(IntPtr hdc, int x, int y, IntPtr previousPoint);
+
+        private const int SourceCopyRasterOperation = 0x00CC0020;
+        private const int HalftoneStretchMode = 4;
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
@@ -327,6 +358,12 @@ namespace GI_Subtitles.Views
             }
             if (Interlocked.Exchange(ref OCR_TIMER, 1) == 0)
             {
+                Stopwatch cycleStopwatch = _performanceDiagnostics ? Stopwatch.StartNew() : null;
+                int sourceWidth = 0;
+                int sourceHeight = 0;
+                int analysisWidth = 0;
+                int analysisHeight = 0;
+                bool ocrTriggered = false;
                 try
                 {
                     Bitmap target;
@@ -345,6 +382,8 @@ namespace GI_Subtitles.Views
                     bool useSecondaryRegion = _regionFallback.UseSecondaryRegion && isRegion2Valid;
                     ResetFrameBaselinesWhenRegionChanges(useSecondaryRegion);
                     target = CaptureRegion(useSecondaryRegion ? notify.Region2 : notify.Region);
+                    sourceWidth = target.Width;
+                    sourceHeight = target.Height;
 
                     bool passedToOcr = false;
                     Mat frameMat = null;
@@ -352,7 +391,16 @@ namespace GI_Subtitles.Views
                     Mat diffFrame = null;
                     try
                     {
-                        frameMat = target.ToMat();
+                        frameMat = LimitFrameSize(target.ToMat(), _realtimeAnalysisMaxSide);
+                        analysisWidth = frameMat.Width;
+                        analysisHeight = frameMat.Height;
+                        if (!debug && !data.IsVisible)
+                        {
+                            // The original high-resolution bitmap is not needed after conversion.
+                            // Releasing it here avoids retaining an 8K-sized allocation while OCR runs.
+                            target.Dispose();
+                            target = null;
+                        }
                         currentBinary = PreprocessToBinary(frameMat);
 
                         if (currentBinary == null || currentBinary.Empty())
@@ -364,6 +412,7 @@ namespace GI_Subtitles.Views
                                     SetWindowPos(new WindowInteropHelper(this).Handle, -1, 0, 0, 0, 0, 1 | 2);
                                     _ = TriggerOcrAsync(frameMat.Clone(), target, useSecondaryRegion: useSecondaryRegion);
                                     passedToOcr = true;
+                                    ocrTriggered = true;
                                 }
                                 else
                                 {
@@ -460,6 +509,7 @@ namespace GI_Subtitles.Views
                                     SetWindowPos(new WindowInteropHelper(this).Handle, -1, 0, 0, 0, 0, 1 | 2);
                                     _ = TriggerOcrAsync(frameMat.Clone(), target, useSecondaryRegion: useSecondaryRegion);
                                     passedToOcr = true;
+                                    ocrTriggered = true;
                                 }
                                 else
                                 {
@@ -490,6 +540,15 @@ namespace GI_Subtitles.Views
                 catch (Exception ex)
                 {
                     Logger.Log.Error(ex);
+                }
+                finally
+                {
+                    if (cycleStopwatch != null && ocrTriggered)
+                    {
+                        Logger.Log.Info(
+                            $"OCR pipeline scheduled: source={sourceWidth}x{sourceHeight}, " +
+                            $"analysis={analysisWidth}x{analysisHeight}, uiStageMs={cycleStopwatch.ElapsedMilliseconds}");
+                    }
                 }
                 Interlocked.Exchange(ref OCR_TIMER, 0);
             }
@@ -845,6 +904,7 @@ namespace GI_Subtitles.Views
             string darkScreenHash = null)
         {
             _isOcrRunning = true;
+            Stopwatch recognitionStopwatch = _performanceDiagnostics ? Stopwatch.StartNew() : null;
             string recognizedText = null;
             bool recognitionCompleted = false;
             try
@@ -933,7 +993,7 @@ namespace GI_Subtitles.Views
                         UpdateWindowPosition();
 
                         // Set image before calling SetImage (SetImage keeps a reference, so we don't dispose here)
-                        if (data.IsVisible)
+                        if (data.IsVisible && target != null)
                         {
                             data.SetImage(target);
                         }
@@ -943,14 +1003,21 @@ namespace GI_Subtitles.Views
                             target?.Dispose();
                         }
 
-                        if (forceRefresh && recognitionCompleted && recognizedText.Length >= 2)
+                        if (forceRefresh && recognitionCompleted &&
+                            !string.IsNullOrWhiteSpace(recognizedText) && recognizedText.Length >= 2)
                         {
                             _forceVoiceReplayRequested = true;
-                            UpdateText(null, EventArgs.Empty);
                         }
                         else if (forceRefresh)
                         {
                             Logger.Log.Warn("Forced OCR refresh produced no usable text; keeping the current subtitle without replay.");
+                        }
+
+                        // Publish successful OCR immediately instead of waiting for the
+                        // 500 ms UI polling timer.
+                        if (recognitionCompleted)
+                        {
+                            UpdateText(null, EventArgs.Empty);
                         }
                     }
                     catch (Exception ex)
@@ -961,6 +1028,8 @@ namespace GI_Subtitles.Views
             }
             finally
             {
+                int processedWidth = frameToProcess?.IsDisposed == false ? frameToProcess.Width : 0;
+                int processedHeight = frameToProcess?.IsDisposed == false ? frameToProcess.Height : 0;
                 if (!string.IsNullOrEmpty(darkScreenHash) &&
                     (!recognitionCompleted || string.IsNullOrWhiteSpace(recognizedText)))
                 {
@@ -969,6 +1038,13 @@ namespace GI_Subtitles.Views
                 }
                 _isOcrRunning = false;
                 frameToProcess?.Dispose();
+
+                if (recognitionStopwatch != null)
+                {
+                    Logger.Log.Info(
+                        $"OCR pipeline completed: frame={processedWidth}x{processedHeight}, " +
+                        $"elapsedMs={recognitionStopwatch.ElapsedMilliseconds}, completed={recognitionCompleted}");
+                }
 
                 if (_forceRefreshPending)
                 {
@@ -1062,8 +1138,10 @@ namespace GI_Subtitles.Views
                     (int)Math.Round(screen.Width * 0.90),
                     (int)Math.Round(screen.Height * 0.45));
 
-                searchBitmap = CaptureRectangle(searchBounds);
-                searchMat = searchBitmap.ToMat();
+                searchBitmap = CaptureRectangleScaled(searchBounds, DarkScreenAnalysisMaxSide);
+                searchMat = LimitFrameSize(searchBitmap.ToMat(), DarkScreenAnalysisMaxSide);
+                searchBitmap.Dispose();
+                searchBitmap = null;
                 bool found = DarkScreenSubtitleDetector.TryFindSubtitleRegion(
                     searchMat,
                     out OpenCvSharp.Rect candidateRegion,
@@ -1091,15 +1169,13 @@ namespace GI_Subtitles.Views
                     return false;
                 }
 
-                var bitmapRegion = new System.Drawing.Rectangle(
+                var bitmapRegion = new OpenCvSharp.Rect(
                     candidateRegion.X,
                     candidateRegion.Y,
                     candidateRegion.Width,
                     candidateRegion.Height);
-                candidateBitmap = searchBitmap.Clone(
-                    bitmapRegion,
-                    System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-                candidateFrame = candidateBitmap.ToMat();
+                candidateFrame = new Mat(searchMat, bitmapRegion).Clone();
+                candidateBitmap = candidateFrame.ToBitmap();
                 string candidateHash = ImageProcessor.ComputeRobustHash(candidateFrame);
 
                 if (!string.IsNullOrEmpty(_lastDarkScreenCandidateHash) &&
@@ -1225,8 +1301,12 @@ namespace GI_Subtitles.Views
                     int.Parse(notify.Region[0]),
                     int.Parse(notify.Region[1]));
                 System.Drawing.Rectangle bounds = Screen.GetBounds(anchor);
-                screenBitmap = CaptureRectangle(bounds);
-                screenMat = screenBitmap.ToMat();
+                screenBitmap = CaptureRectangleScaled(bounds, DialogueOptionAnalysisMaxSide);
+                screenMat = LimitFrameSize(screenBitmap.ToMat(), DialogueOptionAnalysisMaxSide);
+                screenBitmap.Dispose();
+                screenBitmap = null;
+                double coordinateScaleX = bounds.Width / (double)screenMat.Width;
+                double coordinateScaleY = bounds.Height / (double)screenMat.Height;
 
                 double threshold = Config.Get("DialogueOptionTemplateThreshold", 0.74);
                 if (!DialogueOptionDetector.TryFindTextRegion(
@@ -1240,15 +1320,13 @@ namespace GI_Subtitles.Views
                 }
 
                 _dialogueOptionMissCount = 0;
-                var bitmapRegion = new System.Drawing.Rectangle(
+                var bitmapRegion = new OpenCvSharp.Rect(
                     relativeTextRegion.X,
                     relativeTextRegion.Y,
                     relativeTextRegion.Width,
                     relativeTextRegion.Height);
-                Bitmap optionBitmap = screenBitmap.Clone(
-                    bitmapRegion,
-                    System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-                Mat optionFrame = optionBitmap.ToMat();
+                Mat optionFrame = new Mat(screenMat, bitmapRegion).Clone();
+                Bitmap optionBitmap = optionFrame.ToBitmap();
                 string optionHash = ImageProcessor.ComputeRobustHash(optionFrame);
                 if (string.Equals(optionHash, _lastDialogueOptionHash, StringComparison.Ordinal))
                 {
@@ -1259,9 +1337,15 @@ namespace GI_Subtitles.Views
 
                 _lastDialogueOptionHash = optionHash;
                 var absoluteOrigin = new System.Drawing.Point(
-                    bounds.Left + relativeTextRegion.X,
-                    bounds.Top + relativeTextRegion.Y);
-                _ = RecognizeDialogueOptionsAsync(optionFrame, optionBitmap, absoluteOrigin, confidence);
+                    bounds.Left + (int)Math.Round(relativeTextRegion.X * coordinateScaleX),
+                    bounds.Top + (int)Math.Round(relativeTextRegion.Y * coordinateScaleY));
+                _ = RecognizeDialogueOptionsAsync(
+                    optionFrame,
+                    optionBitmap,
+                    absoluteOrigin,
+                    coordinateScaleX,
+                    coordinateScaleY,
+                    confidence);
                 return true;
             }
             catch (Exception ex)
@@ -1280,6 +1364,8 @@ namespace GI_Subtitles.Views
             Mat frame,
             Bitmap bitmap,
             System.Drawing.Point absoluteOrigin,
+            double coordinateScaleX,
+            double coordinateScaleY,
             double templateConfidence)
         {
             _isOcrRunning = true;
@@ -1295,11 +1381,13 @@ namespace GI_Subtitles.Views
                     float maxX = block.BoxPoints.Max(point => point.X);
                     float maxY = block.BoxPoints.Max(point => point.Y);
                     var bounds = System.Drawing.Rectangle.FromLTRB(
-                        absoluteOrigin.X + (int)Math.Floor(minX),
-                        absoluteOrigin.Y + (int)Math.Floor(minY),
-                        absoluteOrigin.X + (int)Math.Ceiling(maxX),
-                        absoluteOrigin.Y + (int)Math.Ceiling(maxY));
-                    bounds.Inflate(24, 14);
+                        absoluteOrigin.X + (int)Math.Floor(minX * coordinateScaleX),
+                        absoluteOrigin.Y + (int)Math.Floor(minY * coordinateScaleY),
+                        absoluteOrigin.X + (int)Math.Ceiling(maxX * coordinateScaleX),
+                        absoluteOrigin.Y + (int)Math.Ceiling(maxY * coordinateScaleY));
+                    bounds.Inflate(
+                        (int)Math.Round(24 * coordinateScaleX),
+                        (int)Math.Round(14 * coordinateScaleY));
                     candidates.Add(new DialogueOptionCandidate(block.Text.Trim(), bounds, block.Score));
                 }
 
@@ -1425,6 +1513,130 @@ namespace GI_Subtitles.Views
                     CopyPixelOperation.SourceCopy);
             }
             return bitmap;
+        }
+
+        /// <summary>
+        /// Captures and downsamples directly through GDI. This avoids allocating a full
+        /// 6K/8K bitmap merely to shrink it on the UI thread. The legacy capture path is
+        /// retained as a compatibility fallback for unusual display drivers.
+        /// </summary>
+        private static Bitmap CaptureRectangleScaled(
+            System.Drawing.Rectangle bounds,
+            int maxSide)
+        {
+            int longSide = Math.Max(bounds.Width, bounds.Height);
+            if (longSide <= maxSide)
+            {
+                return CaptureRectangle(bounds);
+            }
+
+            double scale = maxSide / (double)longSide;
+            int targetWidth = Math.Max(1, (int)Math.Round(bounds.Width * scale));
+            int targetHeight = Math.Max(1, (int)Math.Round(bounds.Height * scale));
+            var bitmap = new Bitmap(
+                targetWidth,
+                targetHeight,
+                System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+            Graphics graphics = null;
+            IntPtr sourceDc = IntPtr.Zero;
+            IntPtr destinationDc = IntPtr.Zero;
+            Exception captureFailure = null;
+            try
+            {
+                graphics = Graphics.FromImage(bitmap);
+                sourceDc = GetDC(IntPtr.Zero);
+                if (sourceDc == IntPtr.Zero)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to acquire the desktop device context.");
+                }
+
+                destinationDc = graphics.GetHdc();
+                SetStretchBltMode(destinationDc, HalftoneStretchMode);
+                SetBrushOrgEx(destinationDc, 0, 0, IntPtr.Zero);
+                if (!StretchBlt(
+                        destinationDc,
+                        0,
+                        0,
+                        targetWidth,
+                        targetHeight,
+                        sourceDc,
+                        bounds.Left,
+                        bounds.Top,
+                        bounds.Width,
+                        bounds.Height,
+                        SourceCopyRasterOperation))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to capture the scaled screen region.");
+                }
+            }
+            catch (Exception ex)
+            {
+                captureFailure = ex;
+            }
+            finally
+            {
+                if (destinationDc != IntPtr.Zero)
+                {
+                    graphics?.ReleaseHdc(destinationDc);
+                }
+                graphics?.Dispose();
+                if (sourceDc != IntPtr.Zero)
+                {
+                    ReleaseDC(IntPtr.Zero, sourceDc);
+                }
+            }
+
+            if (captureFailure == null)
+            {
+                return bitmap;
+            }
+
+            bitmap.Dispose();
+            Logger.Log.Warn($"Scaled screen capture failed; falling back to CopyFromScreen: {captureFailure.Message}");
+            return CaptureRectangle(bounds);
+        }
+
+        /// <summary>
+        /// Caps real-time analysis frames before any grayscale, hash, template matching,
+        /// or OCR preprocessing work. Ownership of <paramref name="source"/> transfers to
+        /// this method; it is disposed when a resized frame is returned.
+        /// </summary>
+        private static Mat LimitFrameSize(Mat source, int maxSide)
+        {
+            if (source == null || source.Empty())
+            {
+                return source;
+            }
+
+            int longSide = Math.Max(source.Width, source.Height);
+            if (longSide <= maxSide)
+            {
+                return source;
+            }
+
+            double scale = maxSide / (double)longSide;
+            var resized = new Mat();
+            try
+            {
+                Cv2.Resize(
+                    source,
+                    resized,
+                    new OpenCvSharp.Size(),
+                    scale,
+                    scale,
+                    InterpolationFlags.Area);
+                return resized;
+            }
+            catch
+            {
+                resized.Dispose();
+                throw;
+            }
+            finally
+            {
+                source.Dispose();
+            }
         }
 
         private sealed class DialogueOptionCandidate

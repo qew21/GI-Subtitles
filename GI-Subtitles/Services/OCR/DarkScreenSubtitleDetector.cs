@@ -33,28 +33,16 @@ namespace GI_Subtitles.Services.OCR
                 return false;
             }
 
-            using var bgr = EnsureBgr(screen);
             using var analysisFrame = new Mat();
             using var gray = new Mat();
             using var hsv = new Mat();
             using var darkMask = new Mat();
             using var brightMask = new Mat();
 
-            double analysisScale = Math.Min(1.0, MaximumAnalysisWidth / (double)bgr.Width);
-            if (analysisScale < 1.0)
-            {
-                Cv2.Resize(
-                    bgr,
-                    analysisFrame,
-                    new Size(),
-                    analysisScale,
-                    analysisScale,
-                    InterpolationFlags.Area);
-            }
-            else
-            {
-                bgr.CopyTo(analysisFrame);
-            }
+            // Resize before color conversion. At 6K/8K, cloning the original BGR frame
+            // before shrinking it can copy tens of megabytes on every scan.
+            double analysisScale = Math.Min(1.0, MaximumAnalysisWidth / (double)screen.Width);
+            CopyScaledBgr(screen, analysisFrame, analysisScale);
 
             Cv2.CvtColor(analysisFrame, gray, ColorConversionCodes.BGR2GRAY);
             Cv2.CvtColor(analysisFrame, hsv, ColorConversionCodes.BGR2HSV);
@@ -140,21 +128,34 @@ namespace GI_Subtitles.Services.OCR
             return subtitleRegion.Width > 0 && subtitleRegion.Height > 0;
         }
 
-        private static Mat EnsureBgr(Mat source)
+        private static void CopyScaledBgr(Mat source, Mat destination, double scale)
         {
-            if (source.Channels() == 3)
+            using var scaled = new Mat();
+            Mat input = source;
+            if (scale < 1.0)
             {
-                return source.Clone();
+                Cv2.Resize(
+                    source,
+                    scaled,
+                    new Size(),
+                    scale,
+                    scale,
+                    InterpolationFlags.Area);
+                input = scaled;
             }
 
-            var converted = new Mat();
+            if (input.Channels() == 3)
+            {
+                input.CopyTo(destination);
+                return;
+            }
+
             Cv2.CvtColor(
-                source,
-                converted,
-                source.Channels() == 4
+                input,
+                destination,
+                input.Channels() == 4
                     ? ColorConversionCodes.BGRA2BGR
                     : ColorConversionCodes.GRAY2BGR);
-            return converted;
         }
 
         private static unsafe List<RowBand> FindTextLines(Mat mask)
