@@ -1013,12 +1013,9 @@ namespace GI_Subtitles.Views
                             Logger.Log.Warn("Forced OCR refresh produced no usable text; keeping the current subtitle without replay.");
                         }
 
-                        // Publish successful OCR immediately instead of waiting for the
-                        // 500 ms UI polling timer.
-                        if (recognitionCompleted)
-                        {
-                            UpdateText(null, EventArgs.Empty);
-                        }
+                        // Let UITimer publish the result and trigger voice playback.
+                        // Keeping both operations on the established timer path avoids
+                        // racing the audio generation while the OCR callback is unwinding.
                     }
                     catch (Exception ex)
                     {
