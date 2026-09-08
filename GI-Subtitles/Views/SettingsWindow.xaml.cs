@@ -2138,8 +2138,11 @@ namespace GI_Subtitles.Views
 
         private void FontPreview_Click(object sender, RoutedEventArgs e)
         {
-            Font font = new Font();
-            this.Close(); // FIXME font view window should be shown in front of the setting window
+            Font font = new Font
+            {
+                Owner = this,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
             font.ShowDialog();
         }
     }
