@@ -26,8 +26,10 @@ namespace GI_Subtitles.Views
             AddFontListViewItems();
             FontListView.ItemsSource = Row;
 
-            var prevFont = Config.Get<string>("Font");
-            var prevFontIndexInList = Row.IndexOf(Row.First(t => t.FontName == prevFont));
+            var prevFont = App.ResolveSubtitleFontName(Config.Get("Font", "Arial"));
+            var previousRow = Row.FirstOrDefault(
+                row => string.Equals(row.FontName, prevFont, StringComparison.OrdinalIgnoreCase));
+            var prevFontIndexInList = Row.IndexOf(previousRow);
             if (prevFontIndexInList != -1)
             {
                 FontListView.SelectedIndex = prevFontIndexInList;
