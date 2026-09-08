@@ -80,8 +80,8 @@ namespace GI_Subtitles.Views
                 Config.Set("Font", selectedItem.FontName);
                 App.ApplySubtitleFont(selectedItem.FontName);
                 var result = MessageBox.Show(
-                    $"Subtitle font was set to: {selectedItem.FontName}\nClose the \"Font\" window?",
-                    "Font Set",
+                    string.Format(GetLocalizedString("FontSetMessage"), selectedItem.FontName),
+                    GetLocalizedString("FontSetTitle"),
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Asterisk);
                 if (result == MessageBoxResult.Yes)
@@ -90,8 +90,8 @@ namespace GI_Subtitles.Views
             else
             {
                 MessageBox.Show(
-                    "Choose a font",
-                    "No Selection",
+                    GetLocalizedString("FontChoosePrompt"),
+                    GetLocalizedString("FontNoSelectionTitle"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -100,6 +100,11 @@ namespace GI_Subtitles.Views
         private void Btn_FontPreviewCancel_OnClick(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private static string GetLocalizedString(string key)
+        {
+            return Application.Current.TryFindResource(key) as string ?? key;
         }
     }
 }

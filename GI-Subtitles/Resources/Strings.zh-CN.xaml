@@ -123,4 +123,8 @@
     <sys:String x:Key="Preview" xmlns:sys="clr-namespace:System;assembly=mscorlib">字体预览</sys:String>
     <sys:String x:Key="Btn_FontPreviewSelect" xmlns:sys="clr-namespace:System;assembly=mscorlib">选择</sys:String>
     <sys:String x:Key="Btn_FontPreviewCancel" xmlns:sys="clr-namespace:System;assembly=mscorlib">取消</sys:String>
+    <sys:String x:Key="FontSetMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">字幕字体已设置为：{0}&#10;是否关闭字体窗口？</sys:String>
+    <sys:String x:Key="FontSetTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">字体已设置</sys:String>
+    <sys:String x:Key="FontChoosePrompt" xmlns:sys="clr-namespace:System;assembly=mscorlib">请选择一种字体</sys:String>
+    <sys:String x:Key="FontNoSelectionTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">未选择字体</sys:String>
 </ResourceDictionary>

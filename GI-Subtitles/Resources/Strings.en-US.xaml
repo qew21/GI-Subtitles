@@ -74,6 +74,7 @@
     <sys:String x:Key="Btn_SecondRegion" xmlns:sys="clr-namespace:System;assembly=mscorlib">Add Secondary Recognition Region</sys:String>
     <sys:String x:Key="Btn_DeleteSecondRegion_Tooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">Delete secondary recognition region</sys:String>
     <sys:String x:Key="Btn_Voice" xmlns:sys="clr-namespace:System;assembly=mscorlib">Voice</sys:String>
+    <sys:String x:Key="Btn_SubtitleFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Change Font</sys:String>
 
     <!-- Tray menu -->
     <sys:String x:Key="Tray_FontSize" xmlns:sys="clr-namespace:System;assembly=mscorlib">Font Size</sys:String>
@@ -106,4 +107,16 @@
     <!-- Data Warnings -->
     <sys:String x:Key="Incomplete_Data_Warning" xmlns:sys="clr-namespace:System;assembly=mscorlib">Detected that the currently used Genshin language packs are missing Medium data. Some text cannot be recognized until you download and merge the Medium files.</sys:String>
     <sys:String x:Key="Data_Repair" xmlns:sys="clr-namespace:System;assembly=mscorlib">Download and Merge Medium Data</sys:String>
+
+    <!-- Font Preview -->
+    <sys:String x:Key="FontPreviewWindow" xmlns:sys="clr-namespace:System;assembly=mscorlib">Font</sys:String>
+    <sys:String x:Key="SampleText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Sample Text</sys:String>
+    <sys:String x:Key="FontName" xmlns:sys="clr-namespace:System;assembly=mscorlib">Font</sys:String>
+    <sys:String x:Key="Preview" xmlns:sys="clr-namespace:System;assembly=mscorlib">Preview</sys:String>
+    <sys:String x:Key="Btn_FontPreviewSelect" xmlns:sys="clr-namespace:System;assembly=mscorlib">Select</sys:String>
+    <sys:String x:Key="Btn_FontPreviewCancel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cancel</sys:String>
+    <sys:String x:Key="FontSetMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Subtitle font was set to: {0}&#10;Close the Font window?</sys:String>
+    <sys:String x:Key="FontSetTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Font Set</sys:String>
+    <sys:String x:Key="FontChoosePrompt" xmlns:sys="clr-namespace:System;assembly=mscorlib">Choose a font</sys:String>
+    <sys:String x:Key="FontNoSelectionTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">No Selection</sys:String>
 </ResourceDictionary>
