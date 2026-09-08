@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Media;
 using System.Globalization;
 using GI_Subtitles.Core.Config;
 using GI_Subtitles.Common;
@@ -41,8 +42,14 @@ namespace GI_Subtitles
 
             // Load UI language resources before MainWindow is created
             LoadUILanguageResources();
+            ApplySubtitleFont(Config.Get("Font", "Arial"));
 
             base.OnStartup(e);
+        }
+
+        public static void ApplySubtitleFont(string fontName)
+        {
+            Current.Resources["SubtitleFontFamily"] = new FontFamily(fontName);
         }
 
         /// <summary>

@@ -22,6 +22,7 @@
         </Button>
         <TextBox x:Name="SubtitleText"
                  TextWrapping="Wrap"
+                 FontFamily="{DynamicResource SubtitleFontFamily}"
                  Foreground="White"
                  TextAlignment="Center"
                  FontWeight="Bold"
@@ -42,6 +43,7 @@
             </StackPanel.RenderTransform>
             <TextBlock x:Name="HeaderText"
                        TextWrapping="Wrap"
+                       FontFamily="{DynamicResource SubtitleFontFamily}"
                        Foreground="White"
                        TextAlignment="Center"
                        FontWeight="Bold"
@@ -50,6 +52,7 @@
                        Visibility="Collapsed"/>
             <TextBlock x:Name="DialogueChoiceText"
                        TextWrapping="Wrap"
+                       FontFamily="{DynamicResource SubtitleFontFamily}"
                        Foreground="{Binding ElementName=HeaderText, Path=Foreground}"
                        TextAlignment="Center"
                        FontWeight="Bold"

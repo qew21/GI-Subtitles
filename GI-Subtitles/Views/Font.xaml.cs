@@ -78,6 +78,7 @@ namespace GI_Subtitles.Views
             if (selectedItem != null)
             {
                 Config.Set("Font", selectedItem.FontName);
+                App.ApplySubtitleFont(selectedItem.FontName);
                 var result = MessageBox.Show(
                     $"Subtitle font was set to: {selectedItem.FontName}\nClose the \"Font\" window?",
                     "Font Set",
