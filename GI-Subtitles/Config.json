@@ -10,5 +10,6 @@
   "AutoStart": false,
   "PlayVoice": false,
   "Debug": false,
-  "Update": "https://2langs.com/data/update.json"
+  "Update": "https://2langs.com/data/update.json",
+  "Font": "Arial"
 }

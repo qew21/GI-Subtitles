@@ -2135,5 +2135,12 @@ namespace GI_Subtitles.Views
             }
             e.Handled = true;
         }
+
+        private void FontPreview_Click(object sender, RoutedEventArgs e)
+        {
+            Font font = new Font();
+            this.Close(); // FIXME font view window should be shown in front of the setting window
+            font.ShowDialog();
+        }
     }
 }

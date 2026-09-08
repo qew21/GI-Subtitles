@@ -144,6 +144,9 @@
     <Compile Include="Services\Translation\OptimizedMatcherCache.cs" />
     <Compile Include="Services\Translation\MatchDataLoader.cs" />
     <Compile Include="Core\Screen\ScreenInfo.cs" />
+    <Compile Include="Views\Font.xaml.cs">
+      <DependentUpon>Font.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\SettingsWindow.xaml.cs">
       <DependentUpon>Views\SettingsWindow.xaml</DependentUpon>
     </Compile>
@@ -167,6 +170,7 @@
     <Compile Include="Models\HotkeyData.cs" />
     <Compile Include="Models\OCRTestResult.cs" />
     <Compile Include="Services\Update\UpdateChecker.cs" />
+    <Page Include="Views\Font.xaml" />
     <Page Include="Views\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

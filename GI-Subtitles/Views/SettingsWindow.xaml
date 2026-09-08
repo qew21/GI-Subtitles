@@ -370,6 +370,7 @@
                                        VerticalAlignment="Center"/>
                         </Button>
                         <Button Content="{DynamicResource Btn_OpenFolder}" Margin="0,0,20,0" Click="OpenAppDataFolder_Click"/>
+                        <Button Content="{DynamicResource Btn_SubtitleFont}" Click="FontPreview_Click"></Button>
                     </WrapPanel>
 
                 </Grid>
