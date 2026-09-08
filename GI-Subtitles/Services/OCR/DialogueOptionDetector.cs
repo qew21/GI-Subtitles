@@ -25,28 +25,52 @@ namespace GI_Subtitles.Services.OCR
                 return false;
             }
 
+            // Template matching has no benefit from operating on a native 6K/8K frame.
+            // Keep the analysis frame at the detector's reference resolution and map
+            // the resulting rectangle back to the caller's coordinate space.
+            double analysisScale = Math.Min(
+                1.0,
+                Math.Min(
+                    ReferenceWidth / (double)screen.Width,
+                    ReferenceHeight / (double)screen.Height));
+            using var analysis = new Mat();
+            if (analysisScale < 1.0)
+            {
+                Cv2.Resize(
+                    screen,
+                    analysis,
+                    new Size(),
+                    analysisScale,
+                    analysisScale,
+                    InterpolationFlags.Area);
+            }
+            else
+            {
+                screen.CopyTo(analysis);
+            }
+
             double scale = Math.Min(
-                screen.Width / (double)ReferenceWidth,
-                screen.Height / (double)ReferenceHeight);
+                analysis.Width / (double)ReferenceWidth,
+                analysis.Height / (double)ReferenceHeight);
             scale = Math.Max(0.5, Math.Min(3.0, scale));
 
             var searchRegion = new Rect(
-                screen.Width / 2,
-                screen.Height / 12,
-                screen.Width - screen.Width / 2 - screen.Width / 6,
-                screen.Height - screen.Height / 12 - 10);
+                analysis.Width / 2,
+                analysis.Height / 12,
+                analysis.Width - analysis.Width / 2 - analysis.Width / 6,
+                analysis.Height - analysis.Height / 12 - 10);
 
             using var gray = new Mat();
-            if (screen.Channels() == 1)
+            if (analysis.Channels() == 1)
             {
-                screen.CopyTo(gray);
+                analysis.CopyTo(gray);
             }
             else
             {
                 Cv2.CvtColor(
-                    screen,
+                    analysis,
                     gray,
-                    screen.Channels() == 4
+                    analysis.Channels() == 4
                         ? ColorConversionCodes.BGRA2GRAY
                         : ColorConversionCodes.BGR2GRAY);
             }
@@ -95,10 +119,10 @@ namespace GI_Subtitles.Services.OCR
             }
 
             int textLeft = searchRegion.X + lowestMatch.X + template.Width + (int)Math.Round(8 * scale);
-            int textTop = screen.Height / 12;
-            int textRight = Math.Min(screen.Width, textLeft + (int)Math.Round(535 * scale));
+            int textTop = analysis.Height / 12;
+            int textRight = Math.Min(analysis.Width, textLeft + (int)Math.Round(535 * scale));
             int textBottom = Math.Min(
-                screen.Height,
+                analysis.Height,
                 searchRegion.Y + lowestMatch.Y + template.Height + (int)Math.Round(30 * scale));
 
             if (textRight <= textLeft || textBottom <= textTop)
@@ -106,8 +130,18 @@ namespace GI_Subtitles.Services.OCR
                 return false;
             }
 
-            textRegion = Rect.FromLTRB(textLeft, textTop, textRight, textBottom);
+            Rect analysisRegion = Rect.FromLTRB(textLeft, textTop, textRight, textBottom);
+            textRegion = ScaleWithin(analysisRegion, 1.0 / analysisScale, screen.Size());
             return true;
+        }
+
+        private static Rect ScaleWithin(Rect source, double scale, Size bounds)
+        {
+            return Rect.FromLTRB(
+                Math.Max(0, (int)Math.Floor(source.Left * scale)),
+                Math.Max(0, (int)Math.Floor(source.Top * scale)),
+                Math.Min(bounds.Width, (int)Math.Ceiling(source.Right * scale)),
+                Math.Min(bounds.Height, (int)Math.Ceiling(source.Bottom * scale)));
         }
 
         private static Mat CreateTemplate(double scale)
