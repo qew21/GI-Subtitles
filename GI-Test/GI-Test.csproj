@@ -101,7 +101,16 @@
     <Compile Include="TestVideo.cs" />
     <Compile Include="TestOCR.cs" />
     <Compile Include="TestDarkScreenSubtitleDetector.cs" />
-    <Compile Include="TestRecognitionRegionFallback.cs" />
+    <Compile Include="TestLiveOverlaySessionOcrInterval.cs" />
+    <Compile Include="TestLiveOverlaySessionHint.cs" />
+    <Compile Include="TestHintScreenSelection.cs" />
+    <Compile Include="TestLiveOverlaySessionRegionPairs.cs" />
+    <Compile Include="TestLiveOverlaySessionVoicePrimary.cs" />
+    <Compile Include="TestLiveOverlaySessionPreviewAndAdjust.cs" />
+    <Compile Include="TestLiveOverlaySessionExtraPaths.cs" />
+    <Compile Include="TestOverlayLayoutPersistence.cs" />
+    <Compile Include="TestLiveOverlaySessionAppliedGame.cs" />
+    <Compile Include="TestRegionPairSettings.cs" />
     <Compile Include="OCRBenchmarkTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
