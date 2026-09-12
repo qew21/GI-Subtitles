@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
+using GI_Subtitles.Core.Config;
 using GI_Subtitles.Core.Overlay;
 
 namespace GI_Subtitles.Views
@@ -14,7 +15,7 @@ namespace GI_Subtitles.Views
         private readonly List<ActivityLogRow> _rowSources = new List<ActivityLogRow>();
         private bool _forceClose;
         private bool _opened;
-        private int _consumedCount;
+        private ActivityLogRowFilter _filter = new ActivityLogRowFilter(ReadLogDenoise());
 
         public ActivityLogWindow(LiveOverlaySession session)
         {
@@ -59,6 +60,26 @@ namespace GI_Subtitles.Views
             Topmost = false;
         }
 
+        private static bool ReadLogDenoise()
+        {
+            return Config.Get("LogDenoise", true);
+        }
+
+        public void ApplyLogDenoiseSetting()
+        {
+            // The settings checkbox toggled: re-project now while the window is
+            // open; a hidden window picks the setting up in its next Rebuild.
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (!IsVisible || ReadLogDenoise() == _filter.HideRepeats)
+                {
+                    return;
+                }
+
+                Rebuild();
+            }));
+        }
+
         private void OnClosing(object sender, CancelEventArgs e)
         {
             if (_forceClose)
@@ -92,27 +113,27 @@ namespace GI_Subtitles.Views
 
         private void Rebuild()
         {
+            _filter = new ActivityLogRowFilter(ReadLogDenoise());
             _rows.Clear();
             _rowSources.Clear();
-            _consumedCount = 0;
             SyncRows();
         }
 
         private void SyncRows()
         {
-            IReadOnlyList<ActivityLogRow> log = _session.ActivityLog;
-            for (int i = _consumedCount; i < log.Count; i++)
+            // Append path: project only newly consumed rows. Hidden repeats are
+            // still consumed so they are never reconsidered; the session record
+            // itself is never modified (ADR 0008 / 0010).
+            IReadOnlyList<ActivityLogRow> shown = _filter.Consume(_session.ActivityLog);
+            foreach (ActivityLogRow row in shown)
             {
-                ActivityLogRow row = log[i];
                 _rows.Add(Project(row));
                 _rowSources.Add(row);
             }
 
-            _consumedCount = log.Count;
-
             // Mutation-only notifies (e.g. voice folded into a prior row) refresh
             // already-projected views without appending.
-            if (_consumedCount == _rowSources.Count)
+            if (shown.Count == 0)
             {
                 for (int i = 0; i < _rowSources.Count; i++)
                 {
@@ -182,7 +203,17 @@ namespace GI_Subtitles.Views
                 parts[i] = ResolveText(JobResourceKey(jobs[i]), null);
             }
 
-            return string.Join(separator, parts);
+            string joined = string.Join(separator, parts);
+            if (row.IsRepeat)
+            {
+                string repeatBadge = ResolveText("ActivityLog_RepeatBadge", null);
+                if (!string.IsNullOrEmpty(repeatBadge))
+                {
+                    joined += separator + repeatBadge;
+                }
+            }
+
+            return joined;
         }
 
         private void ApplyResult(ActivityLogRowView view, ActivityLogRow row)
