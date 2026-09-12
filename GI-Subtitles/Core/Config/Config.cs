@@ -82,6 +82,19 @@ namespace GI_Subtitles.Core.Config
             Save();
         }
 
+        public static bool Contains(string key)
+        {
+            return _settings.ContainsKey(key);
+        }
+
+        public static void Remove(string key)
+        {
+            if (_settings.Remove(key))
+            {
+                Save();
+            }
+        }
+
         public static int GetPad(int defaultValue = 0)
         {
             if (_settings.TryGetValue("Pad", out var token))
