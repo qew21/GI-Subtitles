@@ -108,6 +108,8 @@
     <Compile Include="TestLiveOverlaySessionVoicePrimary.cs" />
     <Compile Include="TestLiveOverlaySessionPreviewAndAdjust.cs" />
     <Compile Include="TestLiveOverlaySessionExtraPaths.cs" />
+    <Compile Include="TestOverlayLayoutPersistence.cs" />
+    <Compile Include="TestLiveOverlaySessionAppliedGame.cs" />
     <Compile Include="TestRegionPairSettings.cs" />
     <Compile Include="OCRBenchmarkTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
