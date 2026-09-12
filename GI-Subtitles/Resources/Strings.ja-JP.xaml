@@ -52,9 +52,82 @@
     <sys:String x:Key="Help_Instructions" xmlns:sys="clr-namespace:System;assembly=mscorlib">使用手順</sys:String>
     <sys:String x:Key="Help_Step1" xmlns:sys="clr-namespace:System;assembly=mscorlib">1. 手順：言語パック管理画面で対応するファイルをダウンロードし、ゲーム内で会話領域を選択して、ホットキーで認識と表示を開始します。</sys:String>
     <sys:String x:Key="Help_Step2" xmlns:sys="clr-namespace:System;assembly=mscorlib">2. Ctrl+Shift+S で開始/一時停止、Ctrl+Shift+R で認識領域を選択、Ctrl+Shift+H で字幕を非表示にできます。競合する場合は「ホットキー」タブで変更できます。</sys:String>
-    <sys:String x:Key="Help_Step3" xmlns:sys="clr-namespace:System;assembly=mscorlib">3. 字幕上にマウスを置いて手のアイコンになったらドラッグで位置を調整できます（ゲームは排他フルスクリーンではなく「ボーダーレスウィンドウ」モードの使用を推奨）。</sys:String>
+    <sys:String x:Key="Help_Step3" xmlns:sys="clr-namespace:System;assembly=mscorlib">3. 「領域ペア」ページで「領域を調整」を押して武装すると、掴んだ枠がそのまま動きます：認識区枠をドラッグすると次の拍から新しい位置でサンプリングされ、表示区枠をドラッグすると字幕が即座に追従します。すべてプレビューと認識領域表示ホットキーは、各ペアの認識区（緑）と表示区（金）を枠で示します。ゲームは排他フルスクリーンではなく「ボーダーレスウィンドウ」を推奨します。</sys:String>
 
     <sys:String x:Key="Tab_Config" xmlns:sys="clr-namespace:System;assembly=mscorlib">その他設定</sys:String>
+    <sys:String x:Key="Tab_RegionPairs" xmlns:sys="clr-namespace:System;assembly=mscorlib">領域ペア</sys:String>
+    <sys:String x:Key="Btn_AddRegionPair" xmlns:sys="clr-namespace:System;assembly=mscorlib">領域ペアを追加</sys:String>
+    <sys:String x:Key="Btn_PreviewAll" xmlns:sys="clr-namespace:System;assembly=mscorlib">すべてプレビュー</sys:String>
+    <sys:String x:Key="RegionPair_Empty" xmlns:sys="clr-namespace:System;assembly=mscorlib">領域ペアはまだありません。</sys:String>
+    <sys:String x:Key="RegionPair_OverCap" xmlns:sys="clr-namespace:System;assembly=mscorlib">追加上限を超えています</sys:String>
+    <sys:String x:Key="RegionPair_PairLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">対</sys:String>
+    <sys:String x:Key="RegionPair_Capture" xmlns:sys="clr-namespace:System;assembly=mscorlib">認識区</sys:String>
+    <sys:String x:Key="RegionPair_Display" xmlns:sys="clr-namespace:System;assembly=mscorlib">表示区</sys:String>
+    <sys:String x:Key="RegionPair_Unset" xmlns:sys="clr-namespace:System;assembly=mscorlib">未設定</sys:String>
+    <sys:String x:Key="Btn_BoxRegion" xmlns:sys="clr-namespace:System;assembly=mscorlib">枠選</sys:String>
+    <sys:String x:Key="Btn_DeletePair" xmlns:sys="clr-namespace:System;assembly=mscorlib">削除</sys:String>
+    <sys:String x:Key="Btn_AdjustRegion" xmlns:sys="clr-namespace:System;assembly=mscorlib">領域を調整</sys:String>
+    <sys:String x:Key="Overlay_PairOutlineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">対 {0}</sys:String>
+    <sys:String x:Key="Btn_SetVoicePrimary" xmlns:sys="clr-namespace:System;assembly=mscorlib">配音主区に設定</sys:String>
+    <sys:String x:Key="Btn_VoicePrimaryOn" xmlns:sys="clr-namespace:System;assembly=mscorlib">配音主区</sys:String>
+    <sys:String x:Key="RegionPair_VoicePrimaryCurrent" xmlns:sys="clr-namespace:System;assembly=mscorlib">配音主区は「領域ペア」ページで指定します。現在は対 {0}。</sys:String>
+    <sys:String x:Key="RegionPair_VoicePrimaryNone" xmlns:sys="clr-namespace:System;assembly=mscorlib">配音主区は「領域ペア」ページで指定します。現在はありません。</sys:String>
+    <sys:String x:Key="RegionPair_BoxCaptureMask" xmlns:sys="clr-namespace:System;assembly=mscorlib">認識区を枠選（対 {0}）</sys:String>
+    <sys:String x:Key="RegionPair_BoxDisplayMask" xmlns:sys="clr-namespace:System;assembly=mscorlib">表示区を枠選（対 {0}）</sys:String>
+    <sys:String x:Key="Config_OcrInterval_Label" xmlns:sys="clr-namespace:System;assembly=mscorlib">最小認識間隔</sys:String>
+    <sys:String x:Key="Config_OcrInterval_OutOfRange" xmlns:sys="clr-namespace:System;assembly=mscorlib">現在 {0}ms、200–1000 の範囲外です。エンジンはこの値のまま動作します。変更すると範囲内に収めます。</sys:String>
+    <sys:String x:Key="Config_SubtitleIdleTimeout_Label" xmlns:sys="clr-namespace:System;assembly=mscorlib">字幕アイドルタイムアウト</sys:String>
+    <sys:String x:Key="Config_SubtitleIdleTimeout_Unit" xmlns:sys="clr-namespace:System;assembly=mscorlib">秒</sys:String>
+    <sys:String x:Key="Config_SubtitleIdleTimeout_Help" xmlns:sys="clr-namespace:System;assembly=mscorlib">領域ペアと暗幕字幕を、この秒数アイドルしたら消します。0 でオフ。範囲 0–60。</sys:String>
+    <sys:String x:Key="Hint_RecognitionRunning" xmlns:sys="clr-namespace:System;assembly=mscorlib">認識中</sys:String>
+    <sys:String x:Key="Hint_RecognitionStopped" xmlns:sys="clr-namespace:System;assembly=mscorlib">停止中</sys:String>
+    <sys:String x:Key="Hint_CaptureRegionBoxed" xmlns:sys="clr-namespace:System;assembly=mscorlib">認識領域を選択済み</sys:String>
+    <sys:String x:Key="Hint_SubtitlesHidden" xmlns:sys="clr-namespace:System;assembly=mscorlib">字幕を非表示</sys:String>
+    <sys:String x:Key="Hint_SubtitlesShown" xmlns:sys="clr-namespace:System;assembly=mscorlib">字幕を表示</sys:String>
+    <sys:String x:Key="Hint_Refreshed" xmlns:sys="clr-namespace:System;assembly=mscorlib">更新しました</sys:String>
+    <sys:String x:Key="Hint_RefreshFoundNoText" xmlns:sys="clr-namespace:System;assembly=mscorlib">テキストなし</sys:String>
+    <sys:String x:Key="Hint_VoiceSpeed" xmlns:sys="clr-namespace:System;assembly=mscorlib">倍速 {0}×</sys:String>
+    <sys:String x:Key="Hint_CaptureRegionMissing" xmlns:sys="clr-namespace:System;assembly=mscorlib">認識領域が未設定</sys:String>
+<sys:String x:Key="ActivityLog_Title" xmlns:sys="clr-namespace:System;assembly=mscorlib">活動ログ</sys:String>
+<sys:String x:Key="ActivityLog_Column_Time" xmlns:sys="clr-namespace:System;assembly=mscorlib">時刻</sys:String>
+<sys:String x:Key="ActivityLog_Column_RegionPair" xmlns:sys="clr-namespace:System;assembly=mscorlib">領域ペア</sys:String>
+<sys:String x:Key="ActivityLog_Column_Job" xmlns:sys="clr-namespace:System;assembly=mscorlib">作業</sys:String>
+<sys:String x:Key="ActivityLog_Column_Result" xmlns:sys="clr-namespace:System;assembly=mscorlib">結果</sys:String>
+<sys:String x:Key="ActivityLog_Scope_Global" xmlns:sys="clr-namespace:System;assembly=mscorlib">全体</sys:String>
+<sys:String x:Key="ActivityLog_Scope_Pair" xmlns:sys="clr-namespace:System;assembly=mscorlib">領域ペア {0}</sys:String>
+<sys:String x:Key="ActivityLog_Scope_VoicePrimary" xmlns:sys="clr-namespace:System;assembly=mscorlib">領域ペア {0}（配音主区）</sys:String>
+<sys:String x:Key="ActivityLog_Scope_DarkScreen" xmlns:sys="clr-namespace:System;assembly=mscorlib">暗転</sys:String>
+<sys:String x:Key="ActivityLog_Scope_DialogueOptions" xmlns:sys="clr-namespace:System;assembly=mscorlib">会話選択肢</sys:String>
+<sys:String x:Key="ActivityLog_JobSeparator" xmlns:sys="clr-namespace:System;assembly=mscorlib"> · </sys:String>
+<sys:String x:Key="ActivityLog_Job_StartRecognition" xmlns:sys="clr-namespace:System;assembly=mscorlib">認識開始</sys:String>
+<sys:String x:Key="ActivityLog_Job_StopRecognition" xmlns:sys="clr-namespace:System;assembly=mscorlib">認識停止</sys:String>
+<sys:String x:Key="ActivityLog_Job_HideSubtitles" xmlns:sys="clr-namespace:System;assembly=mscorlib">字幕を非表示</sys:String>
+<sys:String x:Key="ActivityLog_Job_ShowSubtitles" xmlns:sys="clr-namespace:System;assembly=mscorlib">字幕を表示</sys:String>
+<sys:String x:Key="ActivityLog_Job_BoxCapture" xmlns:sys="clr-namespace:System;assembly=mscorlib">認識区を枠選</sys:String>
+<sys:String x:Key="ActivityLog_Job_Refresh" xmlns:sys="clr-namespace:System;assembly=mscorlib">更新</sys:String>
+<sys:String x:Key="ActivityLog_Job_VoiceSpeed" xmlns:sys="clr-namespace:System;assembly=mscorlib">音声倍速</sys:String>
+<sys:String x:Key="ActivityLog_Job_Preview" xmlns:sys="clr-namespace:System;assembly=mscorlib">プレビュー</sys:String>
+<sys:String x:Key="ActivityLog_Job_Capture" xmlns:sys="clr-namespace:System;assembly=mscorlib">キャプチャ</sys:String>
+<sys:String x:Key="ActivityLog_Job_Ocr" xmlns:sys="clr-namespace:System;assembly=mscorlib">OCR</sys:String>
+<sys:String x:Key="ActivityLog_Job_Match" xmlns:sys="clr-namespace:System;assembly=mscorlib">マッチ</sys:String>
+<sys:String x:Key="ActivityLog_Job_Voice" xmlns:sys="clr-namespace:System;assembly=mscorlib">音声</sys:String>
+<sys:String x:Key="ActivityLog_Job_LanguagePackLoad" xmlns:sys="clr-namespace:System;assembly=mscorlib">言語パック読込</sys:String>
+<sys:String x:Key="ActivityLog_Job_LanguagePackDownload" xmlns:sys="clr-namespace:System;assembly=mscorlib">言語パックダウンロード</sys:String>
+<sys:String x:Key="ActivityLog_Result_DetectionMiss" xmlns:sys="clr-namespace:System;assembly=mscorlib">検出 miss</sys:String>
+<sys:String x:Key="ActivityLog_Result_Tag_Ocr" xmlns:sys="clr-namespace:System;assembly=mscorlib">[OCR]</sys:String>
+<sys:String x:Key="ActivityLog_Result_Tag_Original" xmlns:sys="clr-namespace:System;assembly=mscorlib">[原文]</sys:String>
+<sys:String x:Key="ActivityLog_Result_Tag_Translation" xmlns:sys="clr-namespace:System;assembly=mscorlib">[訳文]</sys:String>
+<sys:String x:Key="ActivityLog_Result_Quoted" xmlns:sys="clr-namespace:System;assembly=mscorlib">「{0}」</sys:String>
+<sys:String x:Key="ActivityLog_Result_MatchMiss" xmlns:sys="clr-namespace:System;assembly=mscorlib" xml:space="preserve"> マッチ miss</sys:String>
+<sys:String x:Key="ActivityLog_Result_LanguagePackStart" xmlns:sys="clr-namespace:System;assembly=mscorlib">開始 {0}</sys:String>
+<sys:String x:Key="ActivityLog_Result_LanguagePackDone" xmlns:sys="clr-namespace:System;assembly=mscorlib">完了 {0}</sys:String>
+<sys:String x:Key="ActivityLog_Result_LanguagePackFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">失敗 {0}</sys:String>
+<sys:String x:Key="ActivityLog_Empty" xmlns:sys="clr-namespace:System;assembly=mscorlib">このセッションにはまだ記録がありません。認識開始、枠選、または言語パックを読み込むとここに表示されます。</sys:String>
+<sys:String x:Key="ActivityLog_NewRecords" xmlns:sys="clr-namespace:System;assembly=mscorlib">新しい記録</sys:String>
+<sys:String x:Key="ActivityLog_Copy" xmlns:sys="clr-namespace:System;assembly=mscorlib">コピー</sys:String>
+<sys:String x:Key="ActivityLog_RepeatBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">重複</sys:String>
+<sys:String x:Key="Btn_ActivityLog" xmlns:sys="clr-namespace:System;assembly=mscorlib">活動ログを開く</sys:String>
+<sys:String x:Key="Tray_ActivityLog" xmlns:sys="clr-namespace:System;assembly=mscorlib">活動ログ</sys:String>
     <sys:String x:Key="Config_Pad_Label" xmlns:sys="clr-namespace:System;assembly=mscorlib">字幕のオフセット（Pad）</sys:String>
     <sys:String x:Key="Config_Pad_Hint" xmlns:sys="clr-namespace:System;assembly=mscorlib">認識領域の下に表示される字幕のピクセル数</sys:String>
     <sys:String x:Key="Config_Pad_Horizontal" xmlns:sys="clr-namespace:System;assembly=mscorlib">水平方向オフセット：</sys:String>
@@ -65,8 +138,22 @@
     <sys:String x:Key="Config_Multiline" xmlns:sys="clr-namespace:System;assembly=mscorlib">複数行認識を有効にする</sys:String>
     <sys:String x:Key="Config_AutoStart" xmlns:sys="clr-namespace:System;assembly=mscorlib">Windows 起動時に自動起動</sys:String>
     <sys:String x:Key="Config_PlayVoice" xmlns:sys="clr-namespace:System;assembly=mscorlib">支線音声を有効にする</sys:String>
+    <sys:String x:Key="Config_LogDenoise" xmlns:sys="clr-namespace:System;assembly=mscorlib">活動ログで重複認識行を非表示</sys:String>
+    <sys:String x:Key="Config_LogDenoise_Tooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">オフにすると、活動ログウィンドウにすべての実行が表示され、重複認識行は薄い表示で印が付きます。ログの表示だけが変わり、記録は削除されず、字幕と音声にも影響しません。</sys:String>
+    <sys:String x:Key="Config_RecognizeDarkScreenSubtitles" xmlns:sys="clr-namespace:System;assembly=mscorlib">暗転字幕を認識</sys:String>
+    <sys:String x:Key="Config_RecognizeDarkScreenSubtitles_Tooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">暗転カットシーンの中央字幕帯を検出し、翻訳を表示します。領域ペアではありません。</sys:String>
     <sys:String x:Key="Config_RecognizeDialogueOptions" xmlns:sys="clr-namespace:System;assembly=mscorlib">会話選択肢を認識</sys:String>
     <sys:String x:Key="Config_RecognizeDialogueOptions_Tooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">会話選択肢を自動検出し、マウスで選んだ項目を翻訳して AI 音声を再生します。</sys:String>
+    <sys:String x:Key="ExtraPath_BoxDisplay" xmlns:sys="clr-namespace:System;assembly=mscorlib">表示区を枠選</sys:String>
+    <sys:String x:Key="ExtraPath_ClearDefault" xmlns:sys="clr-namespace:System;assembly=mscorlib">既定に戻す</sys:String>
+    <sys:String x:Key="ExtraPath_DarkScreenFollowBand" xmlns:sys="clr-namespace:System;assembly=mscorlib">候補帯に追従</sys:String>
+    <sys:String x:Key="ExtraPath_DialogueFollowVoicePrimary" xmlns:sys="clr-namespace:System;assembly=mscorlib">配音主区に追従</sys:String>
+    <sys:String x:Key="ExtraPath_DisplaySet" xmlns:sys="clr-namespace:System;assembly=mscorlib">表示区を指定済み</sys:String>
+    <sys:String x:Key="ExtraPath_BoxDarkScreenMask" xmlns:sys="clr-namespace:System;assembly=mscorlib">暗転表示区を枠選</sys:String>
+    <sys:String x:Key="ExtraPath_BoxDialogueOptionMask" xmlns:sys="clr-namespace:System;assembly=mscorlib">会話選択肢表示区を枠選</sys:String>
+    <sys:String x:Key="Overlay_DarkScreenOutlineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">暗転</sys:String>
+    <sys:String x:Key="Overlay_DialogueOptionOutlineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">選択肢</sys:String>
+    <sys:String x:Key="Overlay_DarkScreenCandidateOutlineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">検出帯</sys:String>
     <sys:String x:Key="Btn_TestVoice" xmlns:sys="clr-namespace:System;assembly=mscorlib">音声テスト</sys:String>
     <sys:String x:Key="Btn_TestVoice_Tooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">「笑死我了。」を認識したものとして、対応する音声を再生します。</sys:String>
     <sys:String x:Key="Btn_OpenFolder" xmlns:sys="clr-namespace:System;assembly=mscorlib">アプリフォルダを開く</sys:String>
