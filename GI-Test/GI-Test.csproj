@@ -108,6 +108,11 @@
     <Compile Include="TestLiveOverlaySessionResultFold.cs" />
     <Compile Include="TestLiveOverlaySessionMatchMissKeep.cs" />
     <Compile Include="TestActivityLogRowFilter.cs" />
+    <Compile Include="ActivityLogResultComposerHarness.cs" />
+    <Compile Include="TestActivityLogResultComposer.cs" />
+    <Compile Include="TestActivityLogResultColoredLayer.cs" />
+    <Compile Include="TestActivityLogWindowAppendProjection.cs" />
+    <Compile Include="TestActivityLogWindowCopyOnSelect.cs" />
     <Compile Include="TestLiveOverlaySessionPipelineLog.cs" />
     <Compile Include="TestDuplicatePipelineLogDiagnosis.cs" />
     <Compile Include="TestLiveOverlaySessionExtraPathRepeat.cs" />
